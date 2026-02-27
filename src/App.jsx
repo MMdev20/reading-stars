@@ -135,6 +135,76 @@ const WORD_GROUPS = [
 
 const LETTER_COLORS = ["#FF6B6B","#4ECDC4","#FFE66D","#A78BFA","#6BCB77","#FF9F1C","#F8A4D8","#89CFF0"];
 
+const WORD_FAMILIES = [
+  { family:"-at", color:"#FF6B6B", words:[
+    {word:"cat",letter:"C",emoji:"🐱"},{word:"bat",letter:"B",emoji:"🦇"},
+    {word:"hat",letter:"H",emoji:"🎩"},{word:"mat",letter:"M",emoji:"🟫"},
+    {word:"rat",letter:"R",emoji:"🐭"},{word:"fat",letter:"F",emoji:"🍔"},
+    {word:"sat",letter:"S",emoji:"🪑"},
+  ]},
+  { family:"-an", color:"#4ECDC4", words:[
+    {word:"can",letter:"C",emoji:"🥫"},{word:"fan",letter:"F",emoji:"🌀"},
+    {word:"man",letter:"M",emoji:"👨"},{word:"pan",letter:"P",emoji:"🍳"},
+    {word:"ran",letter:"R",emoji:"🏃"},{word:"van",letter:"V",emoji:"🚐"},
+  ]},
+  { family:"-ig", color:"#A78BFA", words:[
+    {word:"big",letter:"B",emoji:"🐘"},{word:"dig",letter:"D",emoji:"⛏️"},
+    {word:"fig",letter:"F",emoji:"🍇"},{word:"jig",letter:"J",emoji:"💃"},
+    {word:"pig",letter:"P",emoji:"🐷"},{word:"wig",letter:"W",emoji:"👩‍🦰"},
+  ]},
+  { family:"-og", color:"#FF9F1C", words:[
+    {word:"dog",letter:"D",emoji:"🐶"},{word:"fog",letter:"F",emoji:"🌫️"},
+    {word:"hog",letter:"H",emoji:"🐗"},{word:"log",letter:"L",emoji:"🪵"},
+    {word:"bog",letter:"B",emoji:"🌿"},
+  ]},
+  { family:"-un", color:"#6BCB77", words:[
+    {word:"bun",letter:"B",emoji:"🍞"},{word:"fun",letter:"F",emoji:"🎉"},
+    {word:"run",letter:"R",emoji:"🏃"},{word:"sun",letter:"S",emoji:"☀️"},
+    {word:"gun",letter:"G",emoji:"🎯"},
+  ]},
+  { family:"-ip", color:"#F72585", words:[
+    {word:"dip",letter:"D",emoji:"💧"},{word:"hip",letter:"H",emoji:"🕺"},
+    {word:"lip",letter:"L",emoji:"💋"},{word:"rip",letter:"R",emoji:"✂️"},
+    {word:"sip",letter:"S",emoji:"🥤"},{word:"tip",letter:"T",emoji:"💡"},
+  ]},
+];
+
+const BLEND_WORDS = [
+  {sounds:["c","a","t"],word:"CAT",emoji:"🐱",opts:["CAT","DOG","HAT","CAN"]},
+  {sounds:["d","o","g"],word:"DOG",emoji:"🐶",opts:["CAT","DOG","HOG","DIG"]},
+  {sounds:["h","a","t"],word:"HAT",emoji:"🎩",opts:["BAT","CAT","HAT","MAT"]},
+  {sounds:["s","u","n"],word:"SUN",emoji:"☀️", opts:["RUN","BUN","FUN","SUN"]},
+  {sounds:["p","i","g"],word:"PIG",emoji:"🐷",opts:["BIG","DIG","PIG","JIG"]},
+  {sounds:["h","e","n"],word:"HEN",emoji:"🐔",opts:["TEN","PEN","HEN","MEN"]},
+  {sounds:["f","o","x"],word:"FOX",emoji:"🦊",opts:["BOX","FOX","SOX","COT"]},
+  {sounds:["j","a","m"],word:"JAM",emoji:"🍇",opts:["HAM","YAM","RAM","JAM"]},
+  {sounds:["w","e","b"],word:"WEB",emoji:"🕸️",opts:["BED","RED","WEB","FED"]},
+  {sounds:["b","u","g"],word:"BUG",emoji:"🐛",opts:["RUG","MUG","BUG","JUG"]},
+  {sounds:["c","u","p"],word:"CUP",emoji:"☕",opts:["CUP","PUP","TUB","RUB"]},
+  {sounds:["l","o","g"],word:"LOG",emoji:"🪵",opts:["HOG","FOG","DOG","LOG"]},
+];
+
+const MISSING_WORDS = [
+  {word:"CAT",blank:1,emoji:"🐱",hint:"A furry pet that meows"},
+  {word:"DOG",blank:1,emoji:"🐶",hint:"Man's best friend"},
+  {word:"SUN",blank:1,emoji:"☀️",hint:"Shines bright in the sky"},
+  {word:"HEN",blank:1,emoji:"🐔",hint:"A farm bird that clucks"},
+  {word:"PIG",blank:1,emoji:"🐷",hint:"A pink farm animal"},
+  {word:"BUS",blank:1,emoji:"🚌",hint:"Takes you to school"},
+  {word:"FOX",blank:1,emoji:"🦊",hint:"A clever animal"},
+  {word:"WEB",blank:1,emoji:"🕸️",hint:"A spider makes this"},
+  {word:"JAM",blank:1,emoji:"🍇",hint:"Sweet spread on bread"},
+  {word:"CUP",blank:1,emoji:"☕",hint:"You drink from it"},
+  {word:"LOG",blank:1,emoji:"🪵",hint:"A piece of a tree"},
+  {word:"BUG",blank:1,emoji:"🐛",hint:"A tiny crawling creature"},
+  {word:"HAT",blank:1,emoji:"🎩",hint:"Worn on your head"},
+  {word:"MAP",blank:1,emoji:"🗺️",hint:"Shows you where to go"},
+  {word:"POT",blank:1,emoji:"🪴",hint:"Plants grow in it"},
+  {word:"NET",blank:1,emoji:"🥅",hint:"Used to catch things"},
+  {word:"BED",blank:1,emoji:"🛏️",hint:"You sleep in it"},
+  {word:"PEN",blank:1,emoji:"✏️",hint:"Used for writing"},
+];
+
 const LEVELS = [
   { level:1, name:"Beginner", minStars:0, color:"#6BCB77", emoji:"🌱" },
   { level:2, name:"Explorer", minStars:20, color:"#4ECDC4", emoji:"🌟" },
@@ -460,9 +530,13 @@ function HomeScreen({ stars, onNav }) {
       )}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, maxWidth:360, margin:"0 auto" }}>
         {[
-          { id:"phonics", emoji:"🔤", label:"Phonics", color:C.primary, sub:"Learn letter sounds" },
-          { id:"soundquiz", emoji:"🔊", label:"Sound Quiz", color:"#F72585", sub:"Hear & identify!" },
-          { id:"sightwords", emoji:"👁️", label:"Sight Words", color:C.secondary, sub:"Common words" },
+          { id:"phonics",      emoji:"🔤", label:"Phonics",       color:C.primary,  sub:"Learn letter sounds"   },
+          { id:"soundquiz",    emoji:"🔊", label:"Sound Quiz",    color:"#F72585",  sub:"Hear & identify!"      },
+          { id:"picmatch",     emoji:"🖼️", label:"Picture Match", color:"#E91E8C",  sub:"Match pics to letters" },
+          { id:"blending",     emoji:"🔗", label:"Blending",      color:"#0097A7",  sub:"Blend sounds!"         },
+          { id:"wordfamilies", emoji:"🏠", label:"Word Families", color:"#FF6B6B",  sub:"-at, -an, -ig, -og..." },
+          { id:"missingletter",emoji:"❓", label:"Missing Letter",color:"#8B5CF6",  sub:"Fill in the blank!"    },
+          { id:"sightwords",   emoji:"👁️", label:"Sight Words",   color:C.secondary,sub:"Common words"          },
           { id:"stories", emoji:"📚", label:"Stories", color:C.purple, sub:"Read fun stories" },
           { id:"game", emoji:"🎮", label:"Word Game", color:C.orange, sub:"Play & earn stars" },
           { id:"wordbuilder", emoji:"🔢", label:"Word Builder", color:"#FF9F1C", sub:"Build words!" },
@@ -705,6 +779,435 @@ function DashboardScreen({ stars, progress }) {
   );
 }
 
+// ── PICTURE MATCH ─────────────────────────────────────────────────────────────
+function PictureMatchScreen({ onEarn }) {
+  const [qIdx, setQIdx] = useState(()=>Math.floor(Math.random()*PHONICS.length));
+  const [selected, setSelected] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [particles, setParticles] = useState([]);
+  const item = PHONICS[qIdx];
+
+  const genOptions = useCallback((current) => {
+    const others = PHONICS.filter(p=>p.letter!==current.letter)
+      .sort(()=>Math.random()-0.5).slice(0,3);
+    return [current,...others].sort(()=>Math.random()-0.5);
+  },[]);
+
+  useEffect(()=>{
+    setOptions(genOptions(PHONICS[qIdx]));
+    setSelected(null);
+    speak(`What letter does ${PHONICS[qIdx].word} start with?`, 0.85);
+  },[qIdx]);
+
+  const choose = (opt) => {
+    if (selected) return;
+    setSelected(opt.letter);
+    setTotal(t=>t+1);
+    if (opt.letter===item.letter) {
+      setScore(s=>s+1); onEarn(2);
+      speak(`Yes! ${item.word} starts with ${item.letter}! ${item.letter} says ${PHONETICS[item.letter]}!`, 0.85, 1.2);
+      setParticles(Array.from({length:10},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:60+Math.random()*80})));
+      setTimeout(()=>setParticles([]),1600);
+    } else {
+      speak(`${item.word} starts with ${item.letter}! ${item.letter} says ${PHONETICS[item.letter]}!`, 0.85);
+    }
+  };
+
+  return (
+    <div style={{padding:20,textAlign:"center",position:"relative"}}>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <h2 style={{color:"#E91E8C",margin:"0 0 2px",fontSize:22}}>🖼️ Picture Match!</h2>
+      <p style={{color:"#aaa",fontSize:12,margin:"0 0 16px"}}>Score: {score}/{total} — What letter starts this word?</p>
+
+      <div style={{background:`linear-gradient(135deg,${item.color},${item.color}bb)`,borderRadius:24,padding:"28px 20px",marginBottom:20,boxShadow:`0 8px 0 ${item.color}66`}}>
+        <div style={{fontSize:80}}>{item.emoji}</div>
+        <div style={{display:"flex",gap:8,justifyContent:"center",alignItems:"center",marginTop:10}}>
+          <div style={{width:48,height:52,borderRadius:12,background:"rgba(255,255,255,0.3)",border:"2px dashed rgba(255,255,255,0.7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:900,color:"rgba(255,255,255,0.8)"}}>?</div>
+          <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:3}}>{item.word.slice(1).toUpperCase()}</div>
+        </div>
+        <button onClick={()=>speak(`What letter does ${item.word} start with?`,0.85)}
+          style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.5)",borderRadius:20,padding:"5px 14px",marginTop:10,cursor:"pointer",color:"#fff",fontFamily:"inherit",fontSize:13}}>
+          🔊 Hear it
+        </button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,maxWidth:300,margin:"0 auto 18px"}}>
+        {options.map(opt=>{
+          const isCorrect=opt.letter===item.letter, isSelected=selected===opt.letter;
+          let bg="#fff",border=opt.color,shadow=opt.color+"88";
+          if(selected){
+            if(isCorrect){bg="#d4edda";border=C.green;shadow=C.green+"88";}
+            else if(isSelected){bg="#f8d7da";border=C.primary;shadow=C.primary+"88";}
+            else{bg="#f9f9f9";border="#ddd";shadow="#ddd";}
+          }
+          return(
+            <button key={opt.letter} onClick={()=>choose(opt)}
+              style={{background:bg,border:`3px solid ${border}`,borderRadius:20,padding:"16px 10px",cursor:selected?"default":"pointer",boxShadow:`0 6px 0 ${shadow}`,fontFamily:"inherit",transition:"all 0.2s"}}
+              onMouseDown={e=>{if(!selected)e.currentTarget.style.transform="translateY(4px)";}}
+              onMouseUp={e=>e.currentTarget.style.transform=""}>
+              <div style={{fontSize:40,fontWeight:900,color:selected?(isCorrect?C.green:isSelected?C.primary:"#ccc"):opt.color}}>{opt.letter}</div>
+              <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{PHONETICS[opt.letter]}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {selected&&(
+        <div style={{animation:"popIn 0.4s"}}>
+          <p style={{fontSize:19,fontWeight:900,color:selected===item.letter?C.green:C.primary,margin:"0 0 14px"}}>
+            {selected===item.letter?`🎉 "${item.letter}" starts "${item.word}"! +2 ⭐`:`❌ "${item.word}" starts with "${item.letter}"`}
+          </p>
+          <Btn onClick={()=>setQIdx(Math.floor(Math.random()*PHONICS.length))} color="#E91E8C">Next Picture ▶</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SOUND BLENDING ────────────────────────────────────────────────────────────
+function BlendingScreen({ onEarn }) {
+  const [qIdx, setQIdx] = useState(0);
+  const [currentSound, setCurrentSound] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [particles, setParticles] = useState([]);
+  const timers = useRef([]);
+  const q = BLEND_WORDS[qIdx];
+
+  const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+
+  const playBlend = useCallback(() => {
+    clearTimers();
+    setPlaying(true);
+    q.sounds.forEach((s,i) => {
+      const t = setTimeout(()=>{
+        setCurrentSound(i);
+        speak(PHONETICS[s.toUpperCase()], 0.6, 1.1);
+      }, i*1000);
+      timers.current.push(t);
+    });
+    const end = setTimeout(()=>{ setCurrentSound(-1); setPlaying(false); }, q.sounds.length*1000+300);
+    timers.current.push(end);
+  },[q]);
+
+  useEffect(()=>{
+    setSelected(null); setCurrentSound(-1); setPlaying(false);
+    clearTimers();
+    const t = setTimeout(()=>playBlend(), 500);
+    timers.current.push(t);
+    return clearTimers;
+  },[qIdx]);
+
+  const choose = (word) => {
+    if (selected||playing) return;
+    setSelected(word); setTotal(t=>t+1);
+    if (word===q.word) {
+      setScore(s=>s+1); onEarn(3);
+      speak(`${q.word}! Great blending!`, 0.85, 1.2);
+      setParticles(Array.from({length:10},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:60+Math.random()*80})));
+      setTimeout(()=>setParticles([]),1600);
+    } else {
+      speak(`${q.sounds.map(s=>PHONETICS[s.toUpperCase()]).join("... ")}... ${q.word}!`, 0.8);
+    }
+  };
+
+  const next = ()=>{ clearTimers(); setQIdx(i=>(i+1)%BLEND_WORDS.length); };
+
+  return (
+    <div style={{padding:20,textAlign:"center",position:"relative"}}>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <h2 style={{color:"#0097A7",margin:"0 0 2px",fontSize:22}}>🔗 Sound Blending!</h2>
+      <p style={{color:"#aaa",fontSize:12,margin:"0 0 16px"}}>Score: {score}/{total} — Blend the sounds into a word!</p>
+
+      <div style={{background:"linear-gradient(135deg,#0097A7,#00BCD4)",borderRadius:24,padding:"24px 18px",marginBottom:20,boxShadow:"0 8px 0 #0097a766"}}>
+        <div style={{color:"rgba(255,255,255,0.85)",fontSize:14,marginBottom:14,fontWeight:700}}>Listen and blend the sounds!</div>
+        <div style={{display:"flex",gap:8,justifyContent:"center",alignItems:"center"}}>
+          {q.sounds.map((s,i)=>(
+            <span key={i} style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:58,height:66,borderRadius:16,
+                background:currentSound===i?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.2)",
+                border:`3px solid ${currentSound===i?"#0097A7":"rgba(255,255,255,0.4)"}`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:28,fontWeight:900,
+                color:currentSound===i?"#0097A7":"#fff",
+                transition:"all 0.3s",
+                transform:currentSound===i?"scale(1.15)":"scale(1)",
+              }}>{s.toUpperCase()}</div>
+              {i<q.sounds.length-1&&<span style={{color:"rgba(255,255,255,0.5)",fontSize:20,fontWeight:900}}>+</span>}
+            </span>
+          ))}
+          <span style={{color:"rgba(255,255,255,0.5)",fontSize:20,fontWeight:900}}>= ?</span>
+        </div>
+        <button onClick={()=>{if(!playing)playBlend();}}
+          style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.5)",borderRadius:20,padding:"7px 16px",marginTop:14,cursor:"pointer",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700}}>
+          🔊 Hear sounds again
+        </button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,maxWidth:320,margin:"0 auto 18px"}}>
+        {q.opts.map(word=>{
+          const isCorrect=word===q.word, isSelected=selected===word;
+          let bg="#fff",border="#4ECDC4",shadow="#4ECDC488",textColor="#444";
+          if(selected){
+            if(isCorrect){bg="#d4edda";border=C.green;shadow=C.green+"88";textColor=C.green;}
+            else if(isSelected){bg="#f8d7da";border=C.primary;shadow=C.primary+"88";textColor=C.primary;}
+            else{bg="#f9f9f9";border="#ddd";shadow="#ddd";textColor="#ccc";}
+          }
+          return(
+            <button key={word} onClick={()=>choose(word)}
+              style={{background:bg,border:`3px solid ${border}`,borderRadius:16,padding:"16px 8px",cursor:selected?"default":"pointer",boxShadow:`0 5px 0 ${shadow}`,fontFamily:"inherit",transition:"all 0.2s",fontSize:20,fontWeight:900,color:textColor}}>
+              {word}
+            </button>
+          );
+        })}
+      </div>
+
+      {selected&&(
+        <div style={{animation:"popIn 0.4s"}}>
+          <p style={{fontSize:19,fontWeight:900,color:selected===q.word?C.green:C.primary,margin:"0 0 14px"}}>
+            {selected===q.word?`🎉 ${q.word}! ${q.emoji} +3 ⭐`:`❌ ${q.sounds.join("+")} = ${q.word} ${q.emoji}`}
+          </p>
+          <Btn onClick={next} color="#0097A7">Next Word ▶</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── WORD FAMILIES ─────────────────────────────────────────────────────────────
+function WordFamiliesScreen({ onEarn, progress, onProgress }) {
+  const [familyIdx, setFamilyIdx] = useState(0);
+  const [wordIdx, setWordIdx] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [particles, setParticles] = useState([]);
+  const solved = progress.wordFamilies||{};
+  const family = WORD_FAMILIES[familyIdx];
+  const item = family.words[wordIdx];
+  const solvedInFamily = family.words.filter(w=>solved[`${family.family}-${w.word}`]).length;
+
+  const genOptions = (correctLetter) => {
+    const wrong = PHONICS.filter(p=>p.letter!==correctLetter)
+      .sort(()=>Math.random()-0.5).slice(0,5).map(p=>p.letter);
+    return [correctLetter,...wrong].sort(()=>Math.random()-0.5);
+  };
+
+  useEffect(()=>{
+    setSelected(null);
+    setOptions(genOptions(item.letter));
+    speak(item.word, 0.8, 1.1);
+  },[familyIdx,wordIdx]);
+
+  const choose = (letter) => {
+    if (selected) return;
+    setSelected(letter);
+    if (letter===item.letter) {
+      speak(`${letter}... ${family.family.slice(1)}... ${item.word}!`, 0.8, 1.2);
+      const key=`${family.family}-${item.word}`;
+      if (!solved[key]){ onEarn(3); onProgress("wordFamilies",key); }
+      setParticles(Array.from({length:8},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:40+Math.random()*100})));
+      setTimeout(()=>setParticles([]),1600);
+    } else {
+      speak(`Try again! What letter starts ${item.word}?`, 0.85);
+    }
+  };
+
+  const next = ()=>setWordIdx(i=>(i+1)%family.words.length);
+
+  return (
+    <div style={{padding:"16px 16px 20px",textAlign:"center",position:"relative"}}>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <h2 style={{color:family.color,margin:"0 0 4px",fontSize:22}}>🏠 Word Families!</h2>
+      <p style={{color:"#aaa",fontSize:12,margin:"0 0 10px"}}>Tap the starting letter to build the word!</p>
+
+      <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:12,flexWrap:"wrap"}}>
+        {WORD_FAMILIES.map((f,i)=>(
+          <button key={i} onClick={()=>{setFamilyIdx(i);setWordIdx(0);}}
+            style={{background:familyIdx===i?f.color:"#eee",border:"none",borderRadius:20,padding:"5px 11px",cursor:"pointer",fontWeight:700,fontSize:13,color:familyIdx===i?"#fff":"#888",fontFamily:"inherit"}}>
+            {f.family}
+          </button>
+        ))}
+      </div>
+
+      <div style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#aaa",marginBottom:3}}>
+          <span>{family.family} family</span>
+          <span>{solvedInFamily}/{family.words.length} mastered</span>
+        </div>
+        <ProgressBar value={solvedInFamily} max={family.words.length} color={family.color} height={8}/>
+      </div>
+
+      <div style={{background:`${family.color}18`,border:`3px solid ${family.color}44`,borderRadius:24,padding:"20px 16px",marginBottom:16}}>
+        <div style={{fontSize:64,marginBottom:10}}>{item.emoji}</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center",alignItems:"center"}}>
+          <div style={{width:62,height:70,borderRadius:16,
+            border:`3px solid ${selected===item.letter?C.green:selected?C.primary:family.color}`,
+            background:selected===item.letter?"#d4edda":selected?"#f8d7da":"#fff",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            fontSize:34,fontWeight:900,
+            color:selected===item.letter?C.green:selected?C.primary:family.color,
+            boxShadow:`0 4px 0 ${family.color}88`,transition:"all 0.3s",
+          }}>{selected||"?"}</div>
+          <div style={{background:family.color,borderRadius:16,padding:"12px 18px",boxShadow:`0 4px 0 ${family.color}88`}}>
+            <span style={{fontSize:30,fontWeight:900,color:"#fff"}}>{family.family.slice(1).toUpperCase()}</span>
+          </div>
+        </div>
+        <button onClick={()=>speak(item.word,0.75)}
+          style={{background:"none",border:`2px solid ${family.color}`,borderRadius:20,padding:"4px 14px",cursor:"pointer",color:family.color,fontFamily:"inherit",fontSize:13,marginTop:10}}>
+          🔊 Hear word
+        </button>
+      </div>
+
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:14}}>
+        {options.map(letter=>{
+          const ph=PHONICS.find(p=>p.letter===letter);
+          const col=ph?ph.color:"#aaa";
+          const isCorrect=letter===item.letter, isSelected=selected===letter;
+          let bg=col, bs=col+"88";
+          if(selected){
+            if(isCorrect){bg=C.green;bs=C.green+"88";}
+            else if(isSelected){bg=C.primary;bs=C.primary+"88";}
+            else{bg="#ccc";bs="#bbb";}
+          }
+          return(
+            <button key={letter} onClick={()=>choose(letter)}
+              style={{width:50,height:58,borderRadius:14,background:bg,border:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:900,cursor:selected?"default":"pointer",color:"#fff",boxShadow:`0 4px 0 ${bs}`,fontFamily:"inherit",transition:"all 0.2s",opacity:selected&&!isCorrect&&!isSelected?0.4:1}}
+              onMouseDown={e=>{if(!selected)e.currentTarget.style.transform="translateY(3px)";}}
+              onMouseUp={e=>e.currentTarget.style.transform=""}>
+              {letter}
+            </button>
+          );
+        })}
+      </div>
+
+      {selected&&(
+        <div style={{animation:"popIn 0.4s",marginBottom:10}}>
+          <p style={{fontSize:18,fontWeight:900,color:selected===item.letter?C.green:C.primary,margin:"0 0 10px"}}>
+            {selected===item.letter?`🎉 ${item.word.toUpperCase()}! +3 ⭐`:`❌ It starts with "${item.letter}"!`}
+          </p>
+          <Btn onClick={next} color={family.color}>Next Word ▶</Btn>
+        </div>
+      )}
+      {!selected&&(
+        <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+          <Btn onClick={()=>setWordIdx(i=>(i-1+family.words.length)%family.words.length)} color="#bbb" style={{padding:"10px 18px",fontSize:14}}>◀</Btn>
+          <Btn onClick={next} color={family.color} style={{padding:"10px 18px",fontSize:14}}>▶</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── MISSING LETTER ────────────────────────────────────────────────────────────
+function MissingLetterScreen({ onEarn }) {
+  const [qIdx, setQIdx] = useState(()=>Math.floor(Math.random()*MISSING_WORDS.length));
+  const [selected, setSelected] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [particles, setParticles] = useState([]);
+  const q = MISSING_WORDS[qIdx];
+  const correct = q.word[q.blank];
+
+  const genOptions = (item) => {
+    const c = item.word[item.blank];
+    const wrong = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(l=>l!==c)
+      .sort(()=>Math.random()-0.5).slice(0,3);
+    return [c,...wrong].sort(()=>Math.random()-0.5);
+  };
+
+  useEffect(()=>{
+    setOptions(genOptions(q)); setSelected(null); speak(q.hint, 0.85);
+  },[qIdx]);
+
+  const choose = (letter) => {
+    if (selected) return;
+    setSelected(letter); setTotal(t=>t+1);
+    if (letter===correct) {
+      setScore(s=>s+1); onEarn(2);
+      speak(`${q.word}! Well done!`, 0.85, 1.2);
+      setParticles(Array.from({length:10},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:60+Math.random()*80})));
+      setTimeout(()=>setParticles([]),1600);
+    } else {
+      speak(`The missing letter is ${correct}! ${q.word}!`, 0.85);
+    }
+  };
+
+  return (
+    <div style={{padding:20,textAlign:"center",position:"relative"}}>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <h2 style={{color:"#8B5CF6",margin:"0 0 2px",fontSize:22}}>❓ Missing Letter!</h2>
+      <p style={{color:"#aaa",fontSize:12,margin:"0 0 16px"}}>Score: {score}/{total} — Fill in the missing letter!</p>
+
+      <div style={{background:"linear-gradient(135deg,#8B5CF6,#A78BFA)",borderRadius:24,padding:"24px 20px",marginBottom:20,boxShadow:"0 8px 0 #8b5cf666"}}>
+        <div style={{fontSize:70,marginBottom:12}}>{q.emoji}</div>
+        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+          {q.word.split("").map((letter,i)=>{
+            const isMissing=i===q.blank;
+            const filled=isMissing&&selected;
+            const isRight=filled&&selected===correct;
+            const isWrong=filled&&selected!==correct;
+            return(
+              <div key={i} style={{
+                width:58,height:66,borderRadius:14,
+                background:isMissing?(isRight?"#d4edda":isWrong?"#f8d7da":"rgba(255,255,255,0.15)"):"rgba(255,255,255,0.9)",
+                border:`3px solid ${isMissing?(isRight?C.green:isWrong?C.primary:"rgba(255,255,255,0.6)"):"rgba(255,255,255,0.3)"}`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:30,fontWeight:900,
+                color:isMissing?(filled?(isRight?C.green:C.primary):"#fff"):"#8B5CF6",
+                transition:"all 0.3s",
+              }}>
+                {isMissing?(selected||"_"):letter}
+              </div>
+            );
+          })}
+        </div>
+        <p style={{color:"rgba(255,255,255,0.75)",fontSize:13,margin:"10px 0 6px",fontStyle:"italic"}}>{q.hint}</p>
+        <button onClick={()=>speak(q.hint,0.85)}
+          style={{background:"rgba(255,255,255,0.2)",border:"2px solid rgba(255,255,255,0.5)",borderRadius:20,padding:"5px 14px",cursor:"pointer",color:"#fff",fontFamily:"inherit",fontSize:13}}>
+          🔊 Hear hint
+        </button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,maxWidth:280,margin:"0 auto 18px"}}>
+        {options.map(letter=>{
+          const ph=PHONICS.find(p=>p.letter===letter);
+          const col=ph?ph.color:"#8B5CF6";
+          const isCorrect=letter===correct, isSelected=selected===letter;
+          let bg="#fff",border=col,shadow=col+"88";
+          if(selected){
+            if(isCorrect){bg="#d4edda";border=C.green;shadow=C.green+"88";}
+            else if(isSelected){bg="#f8d7da";border=C.primary;shadow=C.primary+"88";}
+            else{bg="#f9f9f9";border="#ddd";shadow="#ddd";}
+          }
+          return(
+            <button key={letter} onClick={()=>choose(letter)}
+              style={{background:bg,border:`3px solid ${border}`,borderRadius:16,padding:"18px 8px",cursor:selected?"default":"pointer",boxShadow:`0 5px 0 ${shadow}`,fontFamily:"inherit",transition:"all 0.2s"}}
+              onMouseDown={e=>{if(!selected)e.currentTarget.style.transform="translateY(4px)";}}
+              onMouseUp={e=>e.currentTarget.style.transform=""}>
+              <div style={{fontSize:34,fontWeight:900,color:selected?(isCorrect?C.green:isSelected?C.primary:"#ccc"):col}}>{letter}</div>
+              <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{PHONETICS[letter]||""}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {selected&&(
+        <div style={{animation:"popIn 0.4s"}}>
+          <p style={{fontSize:19,fontWeight:900,color:selected===correct?C.green:C.primary,margin:"0 0 14px"}}>
+            {selected===correct?`🎉 ${q.word}! +2 ⭐`:`❌ The missing letter is "${correct}"!`}
+          </p>
+          <Btn onClick={()=>setQIdx(Math.floor(Math.random()*MISSING_WORDS.length))} color="#8B5CF6">Next Word ▶</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SOUND QUIZ ────────────────────────────────────────────────────────────────
 function SoundQuizScreen({ onEarn }) {
   const [current, setCurrent] = useState(null);
@@ -829,7 +1332,7 @@ export default function App() {
   const [screen, setScreen] = useState("home");
   const [stars, setStars] = useState(0);
   const [particles, setParticles] = useState([]);
-  const [progress, setProgress] = useState({ phonics:{}, sightWords:{}, stories:{}, wordBuilder:{} });
+  const [progress, setProgress] = useState({ phonics:{}, sightWords:{}, stories:{}, wordBuilder:{}, wordFamilies:{} });
 
   const earn = useCallback((n) => {
     setStars(s => {
@@ -846,15 +1349,19 @@ export default function App() {
   }, []);
 
   const NAV = [
-    { id:"home",       emoji:"🏠", label:"Home"    },
-    { id:"phonics",    emoji:"🔤", label:"Phonics" },
-    { id:"soundquiz",  emoji:"🔊", label:"Sounds"  },
-    { id:"wordbuilder",emoji:"🔢", label:"Build"   },
-    { id:"sightwords", emoji:"👁️", label:"Words"   },
-    { id:"stories",    emoji:"📚", label:"Stories" },
-    { id:"game",       emoji:"🎮", label:"Game"    },
-    { id:"tracing",    emoji:"✍️", label:"Trace"   },
-    { id:"dashboard",  emoji:"📊", label:"Stats"   },
+    { id:"home",         emoji:"🏠", label:"Home"     },
+    { id:"phonics",      emoji:"🔤", label:"Phonics"  },
+    { id:"soundquiz",    emoji:"🔊", label:"Sounds"   },
+    { id:"picmatch",     emoji:"🖼️", label:"Match"    },
+    { id:"blending",     emoji:"🔗", label:"Blend"    },
+    { id:"wordfamilies", emoji:"🏠", label:"Families" },
+    { id:"missingletter",emoji:"❓", label:"Missing"  },
+    { id:"wordbuilder",  emoji:"🔢", label:"Build"    },
+    { id:"sightwords",   emoji:"👁️", label:"Words"    },
+    { id:"stories",      emoji:"📚", label:"Stories"  },
+    { id:"game",         emoji:"🎮", label:"Game"     },
+    { id:"tracing",      emoji:"✍️", label:"Trace"    },
+    { id:"dashboard",    emoji:"📊", label:"Stats"    },
   ];
 
   return (
@@ -862,6 +1369,7 @@ export default function App() {
       <style>{`
         @keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-80px)} }
         @keyframes popIn { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+        .nav-bar::-webkit-scrollbar { display:none; }
       `}</style>
       {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
       <div style={{ background:"linear-gradient(90deg,#FF6B6B,#FF9F1C)", padding:"12px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -875,6 +1383,10 @@ export default function App() {
         {screen==="home" && <HomeScreen stars={stars} onNav={setScreen}/>}
         {screen==="phonics" && <PhonicsScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
         {screen==="soundquiz" && <SoundQuizScreen onEarn={earn}/>}
+        {screen==="picmatch" && <PictureMatchScreen onEarn={earn}/>}
+        {screen==="blending" && <BlendingScreen onEarn={earn}/>}
+        {screen==="wordfamilies" && <WordFamiliesScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
+        {screen==="missingletter" && <MissingLetterScreen onEarn={earn}/>}
         {screen==="sightwords" && <SightWordsScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
         {screen==="stories" && <StoriesScreen onEarn={earn} stars={stars} progress={progress} onProgress={trackProgress}/>}
         {screen==="game" && <GameScreen onEarn={earn}/>}
@@ -882,9 +1394,9 @@ export default function App() {
         {screen==="tracing" && <TracingScreen onEarn={earn}/>}
         {screen==="dashboard" && <DashboardScreen stars={stars} progress={progress}/>}
       </div>
-      <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:420, background:"#fff", borderTop:"3px solid #f0f0f0", display:"flex", justifyContent:"space-around", padding:"6px 0", zIndex:50 }}>
+      <div className="nav-bar" style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:420, background:"#fff", borderTop:"3px solid #f0f0f0", display:"flex", overflowX:"auto", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none", padding:"6px 0", zIndex:50 }}>
         {NAV.map(({ id, emoji, label })=>(
-          <button key={id} onClick={()=>setScreen(id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:1, padding:"3px 4px", opacity:screen===id?1:0.45, transform:screen===id?"scale(1.15)":"scale(1)", transition:"all 0.2s", fontFamily:"inherit" }}>
+          <button key={id} onClick={()=>setScreen(id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:1, padding:"3px 6px", minWidth:50, flexShrink:0, opacity:screen===id?1:0.45, transform:screen===id?"scale(1.15)":"scale(1)", transition:"all 0.2s", fontFamily:"inherit" }}>
             <span style={{ fontSize:18 }}>{emoji}</span>
             <span style={{ fontSize:9, fontWeight:700, color:screen===id?C.primary:"#aaa" }}>{label}</span>
           </button>
