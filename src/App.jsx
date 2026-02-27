@@ -1,0 +1,895 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const C = { bg:"#FFF9F0", primary:"#FF6B6B", secondary:"#4ECDC4", accent:"#FFE66D", purple:"#A78BFA", green:"#6BCB77", orange:"#FF9F1C", dark:"#2D3436" };
+
+const speak = (text, rate=0.85, pitch=1.1) => {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = rate; u.pitch = pitch; u.volume = 1;
+  window.speechSynthesis.speak(u);
+};
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const PHONICS = [
+  { letter:"A", word:"Apple", emoji:"🍎", color:"#FF6B6B" },
+  { letter:"B", word:"Ball", emoji:"⚽", color:"#4ECDC4" },
+  { letter:"C", word:"Cat", emoji:"🐱", color:"#FFE66D" },
+  { letter:"D", word:"Dog", emoji:"🐶", color:"#A78BFA" },
+  { letter:"E", word:"Elephant", emoji:"🐘", color:"#6BCB77" },
+  { letter:"F", word:"Fish", emoji:"🐟", color:"#FF9F1C" },
+  { letter:"G", word:"Goat", emoji:"🐐", color:"#FF6B6B" },
+  { letter:"H", word:"Hat", emoji:"🎩", color:"#4ECDC4" },
+  { letter:"I", word:"Igloo", emoji:"🏠", color:"#FFE66D" },
+  { letter:"J", word:"Jug", emoji:"🫙", color:"#A78BFA" },
+  { letter:"K", word:"Kite", emoji:"🪁", color:"#6BCB77" },
+  { letter:"L", word:"Lion", emoji:"🦁", color:"#FF9F1C" },
+  { letter:"M", word:"Moon", emoji:"🌙", color:"#FF6B6B" },
+  { letter:"N", word:"Nest", emoji:"🪺", color:"#4ECDC4" },
+  { letter:"O", word:"Orange", emoji:"🍊", color:"#FFE66D" },
+  { letter:"P", word:"Pig", emoji:"🐷", color:"#A78BFA" },
+  { letter:"Q", word:"Queen", emoji:"👑", color:"#6BCB77" },
+  { letter:"R", word:"Rain", emoji:"🌧️", color:"#FF9F1C" },
+  { letter:"S", word:"Sun", emoji:"☀️", color:"#FF6B6B" },
+  { letter:"T", word:"Tree", emoji:"🌳", color:"#4ECDC4" },
+  { letter:"U", word:"Umbrella", emoji:"☂️", color:"#FFE66D" },
+  { letter:"V", word:"Van", emoji:"🚐", color:"#A78BFA" },
+  { letter:"W", word:"Worm", emoji:"🪱", color:"#6BCB77" },
+  { letter:"X", word:"X-ray", emoji:"🦴", color:"#FF9F1C" },
+  { letter:"Y", word:"Yarn", emoji:"🧶", color:"#FF6B6B" },
+  { letter:"Z", word:"Zebra", emoji:"🦓", color:"#4ECDC4" },
+];
+
+const SIGHT_WORDS = [
+  { word:"the", sentence:"The cat sat on the mat.", emoji:"📖" },
+  { word:"and", sentence:"A cat and a dog play.", emoji:"🐱🐶" },
+  { word:"a", sentence:"I see a big red ball.", emoji:"🔴" },
+  { word:"I", sentence:"I can run very fast!", emoji:"🏃" },
+  { word:"it", sentence:"It is a funny cat.", emoji:"🐱" },
+  { word:"in", sentence:"The fish is in the pond.", emoji:"🐟" },
+  { word:"is", sentence:"The sun is hot today.", emoji:"☀️" },
+  { word:"my", sentence:"That is my yellow hat.", emoji:"🎩" },
+  { word:"go", sentence:"Go run and jump high!", emoji:"🏃" },
+  { word:"up", sentence:"Look up at the big sky.", emoji:"☁️" },
+  { word:"see", sentence:"I see a bright moon.", emoji:"🌙" },
+  { word:"can", sentence:"I can hop like a frog.", emoji:"🐸" },
+  { word:"we", sentence:"We like to play outside.", emoji:"👫" },
+  { word:"he", sentence:"He has a toy car.", emoji:"🚗" },
+  { word:"she", sentence:"She can sing a song.", emoji:"🎵" },
+  { word:"at", sentence:"Look at the big dog!", emoji:"🐶" },
+];
+
+const STORIES = [
+  { title:"The Big Red Hen", emoji:"🐔", color:"#FF6B6B", level:1,
+    pages:[ { text:"A big red hen sat on a mat.", emojis:"🐔🟥" }, { text:"The hen can run and hop fast.", emojis:"🐔💨" }, { text:"She sat on a little egg.", emojis:"🐔🥚" }, { text:"Tap, tap! A chick came out!", emojis:"🐣✨" }, { text:"The hen and chick ran off together.", emojis:"🐔🐥🌿" } ] },
+  { title:"Sam and the Cat", emoji:"🐱", color:"#4ECDC4", level:1,
+    pages:[ { text:"Sam has a big fat cat.", emojis:"👦🐱" }, { text:"The cat sat on a soft mat.", emojis:"🐱🟫" }, { text:"Sam and the cat ran outside.", emojis:"👦🐱💨" }, { text:"The cat got a big fish!", emojis:"🐱🐟⭐" }, { text:"Sam and the cat are very happy!", emojis:"👦🐱😊" } ] },
+  { title:"The Sun and Rain", emoji:"🌈", color:"#A78BFA", level:1,
+    pages:[ { text:"The sun is up and very hot.", emojis:"☀️🔥" }, { text:"Dark clouds came rolling in.", emojis:"☁️🌫️" }, { text:"The rain came pouring down fast.", emojis:"🌧️💧" }, { text:"A little frog hops in the rain.", emojis:"🐸🌧️" }, { text:"Sun and rain make a big rainbow!", emojis:"🌈✨🌟" } ] },
+  { title:"The Lost Dog", emoji:"🐶", color:"#FF9F1C", level:2,
+    pages:[ { text:"A small brown dog ran away.", emojis:"🐶🏃" }, { text:"The dog ran past the big park.", emojis:"🐶🌳" }, { text:"He sniffed and sniffed the ground.", emojis:"🐶👃" }, { text:"A kind girl saw the lost dog.", emojis:"👧🐶" }, { text:"She gave him a hug and took him home.", emojis:"👧🐶🏠💕" } ] },
+  { title:"The Little Seed", emoji:"🌱", color:"#6BCB77", level:2,
+    pages:[ { text:"A tiny seed sat in dark soil.", emojis:"🌱🟫" }, { text:"Rain and sunshine helped it grow.", emojis:"☀️🌧️" }, { text:"A small green shoot came up.", emojis:"🌿💚" }, { text:"Leaves and buds began to appear.", emojis:"🍃🌸" }, { text:"A beautiful flower bloomed at last!", emojis:"🌻✨🎉" } ] },
+  { title:"Night Sky Adventure", emoji:"🚀", color:"#2D3436", level:3,
+    pages:[ { text:"Leo and Zara got into the rocket.", emojis:"👦👧🚀" }, { text:"They zoomed past the bright moon.", emojis:"🚀🌙⭐" }, { text:"Stars twinkled all around them.", emojis:"🌟💫✨" }, { text:"They landed on a glowing planet.", emojis:"🚀🪐🌟" }, { text:"They waved goodbye and flew back home.", emojis:"👋🚀🏠🌍" } ] },
+];
+
+const QUIZ_QUESTIONS = [
+  { q:"What sound does 'B' make?", opts:["buh","duh","puh","wuh"], ans:0, emoji:"⚽" },
+  { q:"Which word rhymes with 'cat'?", opts:["dog","hat","sun","big"], ans:1, emoji:"🎩" },
+  { q:"What sound does 'S' make?", opts:["zzz","tuh","sss","mmm"], ans:2, emoji:"☀️" },
+  { q:"Which word starts with 'F'?", opts:["dog","cat","fish","hen"], ans:2, emoji:"🐟" },
+  { q:"What comes after 'A B C'?", opts:["E","D","F","G"], ans:1, emoji:"🔤" },
+  { q:"Which word rhymes with 'sun'?", opts:["hat","run","big","cat"], ans:1, emoji:"☀️" },
+  { q:"What sound does 'M' make?", opts:["nnn","mmm","buh","lll"], ans:1, emoji:"🌙" },
+  { q:"Which word starts with 'D'?", opts:["cat","frog","dog","hen"], ans:2, emoji:"🐶" },
+  { q:"Which word rhymes with 'big'?", opts:["cat","pig","sun","hop"], ans:1, emoji:"🐷" },
+  { q:"What sound does 'T' make?", opts:["duh","kuh","tuh","sss"], ans:2, emoji:"🌳" },
+  { q:"Which word starts with 'H'?", opts:["mat","hat","rat","bat"], ans:1, emoji:"🎩" },
+  { q:"Which word rhymes with 'hop'?", opts:["cat","run","top","big"], ans:2, emoji:"🐸" },
+];
+
+// ── WORD BUILDER DATA ─────────────────────────────────────────────────────────
+const WORD_GROUPS = [
+  { category:"Animals", emoji:"🐾", color:"#FF6B6B", words:[
+    { word:"CAT", emoji:"🐱", hint:"A furry pet that meows" },
+    { word:"DOG", emoji:"🐶", hint:"Man's best friend" },
+    { word:"HEN", emoji:"🐔", hint:"A farm bird that clucks" },
+    { word:"PIG", emoji:"🐷", hint:"A pink farm animal" },
+    { word:"COW", emoji:"🐮", hint:"Gives us milk" },
+    { word:"BEE", emoji:"🐝", hint:"Makes honey and buzzes" },
+    { word:"FOX", emoji:"🦊", hint:"A clever orange animal" },
+    { word:"OWL", emoji:"🦉", hint:"A wise night bird" },
+  ]},
+  { category:"Things", emoji:"🧸", color:"#4ECDC4", words:[
+    { word:"BAT", emoji:"🏏", hint:"You hit a ball with it" },
+    { word:"BUS", emoji:"🚌", hint:"A big vehicle for people" },
+    { word:"CUP", emoji:"☕", hint:"You drink from it" },
+    { word:"HAT", emoji:"🎩", hint:"You wear it on your head" },
+    { word:"MAP", emoji:"🗺️", hint:"Shows you where to go" },
+    { word:"NET", emoji:"🥅", hint:"Used to catch things" },
+    { word:"POT", emoji:"🪴", hint:"Plants grow in it" },
+    { word:"JAR", emoji:"🫙", hint:"Has a lid, holds food" },
+  ]},
+  { category:"Actions", emoji:"⚡", color:"#A78BFA", words:[
+    { word:"RUN", emoji:"🏃", hint:"Move very fast on feet" },
+    { word:"HOP", emoji:"🐸", hint:"Jump on one foot" },
+    { word:"SIT", emoji:"🪑", hint:"Rest on a chair" },
+    { word:"DIG", emoji:"⛏️", hint:"Move dirt with a tool" },
+    { word:"NAP", emoji:"😴", hint:"A short sleep" },
+    { word:"WET", emoji:"💧", hint:"Not dry" },
+    { word:"CUT", emoji:"✂️", hint:"Use scissors to do this" },
+    { word:"MIX", emoji:"🥣", hint:"Stir things together" },
+  ]},
+  { category:"Nature", emoji:"🌿", color:"#6BCB77", words:[
+    { word:"SUN", emoji:"☀️", hint:"Bright star in the sky" },
+    { word:"MUD", emoji:"🟫", hint:"Wet, dirty earth" },
+    { word:"ICE", emoji:"🧊", hint:"Frozen water" },
+    { word:"LOG", emoji:"🪵", hint:"A piece of a tree" },
+    { word:"BUD", emoji:"🌸", hint:"A flower before it opens" },
+    { word:"DEW", emoji:"💧", hint:"Morning drops on grass" },
+    { word:"WEB", emoji:"🕸️", hint:"A spider makes this" },
+    { word:"GEM", emoji:"💎", hint:"A shiny precious stone" },
+  ]},
+];
+
+const LETTER_COLORS = ["#FF6B6B","#4ECDC4","#FFE66D","#A78BFA","#6BCB77","#FF9F1C","#F8A4D8","#89CFF0"];
+
+const LEVELS = [
+  { level:1, name:"Beginner", minStars:0, color:"#6BCB77", emoji:"🌱" },
+  { level:2, name:"Explorer", minStars:20, color:"#4ECDC4", emoji:"🌟" },
+  { level:3, name:"Reader", minStars:50, color:"#A78BFA", emoji:"📚" },
+  { level:4, name:"Star Reader", minStars:100, color:"#FF9F1C", emoji:"🚀" },
+  { level:5, name:"Super Star", minStars:200, color:"#FF6B6B", emoji:"🏆" },
+];
+
+const getLevel = (s) => [...LEVELS].reverse().find(l=>s>=l.minStars)||LEVELS[0];
+const nextLevel = (s) => LEVELS.find(l=>l.minStars>s);
+
+const PHONETICS = {
+  A:"aah", B:"buh", C:"kuh", D:"duh", E:"eh",
+  F:"fff", G:"guh", H:"huh", I:"ih",  J:"juh",
+  K:"kuh", L:"lll", M:"mmm", N:"nnn", O:"oh",
+  P:"puh", Q:"kwuh",R:"rrr", S:"sss", T:"tuh",
+  U:"uh",  V:"vvv", W:"wuh", X:"ks",  Y:"yuh", Z:"zzz",
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const ProgressBar = ({ value, max, color, height=14 }) => (
+  <div style={{ background:"#e0e0e0", borderRadius:20, height, overflow:"hidden", width:"100%" }}>
+    <div style={{ background:color, width:`${Math.min(100,(value/max)*100)}%`, height:"100%", borderRadius:20, transition:"width 0.6s ease" }}/>
+  </div>
+);
+
+const Btn = ({ children, onClick, color="#FF6B6B", style={}, disabled=false }) => (
+  <button onClick={onClick} disabled={disabled}
+    style={{ background:color, border:"none", borderRadius:50, padding:"12px 28px", fontSize:16, fontWeight:900, cursor:disabled?"default":"pointer", color:"#fff", boxShadow:`0 5px 0 ${color}88`, fontFamily:"inherit", opacity:disabled?0.5:1, transition:"transform 0.1s", ...style }}
+    onMouseDown={e=>{ if(!disabled) e.currentTarget.style.transform="translateY(3px)"; }}
+    onMouseUp={e=>{ e.currentTarget.style.transform=""; }}>
+    {children}
+  </button>
+);
+
+function FloatParticle({ x, y }) {
+  const icons = ["⭐","🌟","✨","💫"];
+  return <div style={{ position:"fixed", left:x, top:y, fontSize:22, pointerEvents:"none", zIndex:999, animation:"floatUp 1.5s forwards" }}>{icons[Math.floor(Math.random()*icons.length)]}</div>;
+}
+
+// ── WORD BUILDER ──────────────────────────────────────────────────────────────
+function WordBuilderScreen({ onEarn, progress, onProgress }) {
+  const [groupIdx, setGroupIdx] = useState(0);
+  const [wordIdx, setWordIdx] = useState(0);
+  const [placed, setPlaced] = useState([]); // letters placed in slots
+  const [bank, setBank] = useState([]);     // shuffled letter tiles in tray
+  const [status, setStatus] = useState("idle"); // idle | correct | wrong
+  const [showHint, setShowHint] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+  const [particles, setParticles] = useState([]);
+
+  const group = WORD_GROUPS[groupIdx];
+  const item = group.words[wordIdx];
+  const word = item.word;
+  const solved = progress.wordBuilder || {};
+
+  // Init / reset on word change
+  useEffect(() => {
+    reset();
+  }, [groupIdx, wordIdx]);
+
+  const reset = () => {
+    setPlaced(Array(word.length).fill(null));
+    const letters = word.split("").map((ch, i) => ({ id: i, char: ch, color: LETTER_COLORS[i % LETTER_COLORS.length] }));
+    // shuffle
+    for (let i = letters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [letters[i], letters[j]] = [letters[j], letters[i]];
+    }
+    setBank(letters);
+    setStatus("idle");
+    setShowHint(false);
+    setCelebrating(false);
+  };
+
+  const tapFromBank = (tile) => {
+    if (status === "correct") return;
+    // find first empty slot
+    const slotIdx = placed.findIndex(s => s === null);
+    if (slotIdx === -1) return;
+    const newPlaced = [...placed];
+    newPlaced[slotIdx] = tile;
+    setBank(b => b.filter(t => t.id !== tile.id));
+    setPlaced(newPlaced);
+    speak(tile.char.toLowerCase(), 1.0);
+  };
+
+  const tapFromSlot = (slotIdx) => {
+    if (status === "correct") return;
+    const tile = placed[slotIdx];
+    if (!tile) return;
+    const newPlaced = [...placed];
+    newPlaced[slotIdx] = null;
+    setPlaced(newPlaced);
+    setBank(b => [...b, tile]);
+    setStatus("idle");
+  };
+
+  // Auto-check when all slots filled
+  useEffect(() => {
+    if (placed.every(p => p !== null)) {
+      const attempt = placed.map(p => p.char).join("");
+      if (attempt === word) {
+        setStatus("correct");
+        setCelebrating(true);
+        speak(`${word.toLowerCase()}! Well done!`, 0.85, 1.2);
+        const key = `${group.category}-${word}`;
+        const isNew = !solved[key];
+        if (isNew) { onEarn(4); onProgress("wordBuilder", key); }
+        setParticles(Array.from({length:12},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:40+Math.random()*120})));
+        setTimeout(()=>setParticles([]),1600);
+      } else {
+        setStatus("wrong");
+        speak("Not quite! Try again.", 0.85);
+      }
+    } else {
+      if (status === "wrong") setStatus("idle");
+    }
+  }, [placed]);
+
+  const nextWord = () => setWordIdx(i => (i + 1) % group.words.length);
+  const prevWord = () => setWordIdx(i => (i - 1 + group.words.length) % group.words.length);
+
+  const solvedInGroup = group.words.filter(w => solved[`${group.category}-${w.word}`]).length;
+
+  return (
+    <div style={{ padding:"16px 16px 20px", textAlign:"center", position:"relative" }}>
+      {particles.map(p => <FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+
+      <h2 style={{ color:C.orange, margin:"0 0 4px", fontSize:22 }}>🔢 Word Builder!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 10px" }}>Tap letters to spell the word!</p>
+
+      {/* Category tabs */}
+      <div style={{ display:"flex", gap:6, justifyContent:"center", marginBottom:14, flexWrap:"wrap" }}>
+        {WORD_GROUPS.map((g,i) => (
+          <button key={i} onClick={()=>{ setGroupIdx(i); setWordIdx(0); }}
+            style={{ background:groupIdx===i?g.color:"#eee", border:"none", borderRadius:20, padding:"5px 12px", cursor:"pointer", fontWeight:700, fontSize:13, color:groupIdx===i?"#fff":"#888", fontFamily:"inherit", transition:"all 0.2s" }}>
+            {g.emoji} {g.category}
+          </button>
+        ))}
+      </div>
+
+      {/* Progress */}
+      <div style={{ marginBottom:10 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#aaa", marginBottom:3 }}>
+          <span>{group.emoji} {group.category}</span>
+          <span>{solvedInGroup}/{group.words.length} solved</span>
+        </div>
+        <ProgressBar value={solvedInGroup} max={group.words.length} color={group.color} height={8}/>
+      </div>
+
+      {/* Word dots nav */}
+      <div style={{ display:"flex", gap:6, justifyContent:"center", marginBottom:14 }}>
+        {group.words.map((w,i) => {
+          const done = solved[`${group.category}-${w.word}`];
+          return (
+            <div key={i} onClick={()=>setWordIdx(i)}
+              style={{ width:10, height:10, borderRadius:"50%", background:done?group.color:i===wordIdx?"#333":"#ddd", cursor:"pointer", border:i===wordIdx?"2px solid #333":"2px solid transparent", transition:"all 0.2s" }}/>
+          );
+        })}
+      </div>
+
+      {/* Emoji + hint */}
+      <div style={{ background:`${group.color}18`, border:`3px solid ${group.color}44`, borderRadius:24, padding:"18px 16px", marginBottom:16, position:"relative" }}>
+        <div style={{ fontSize:68, lineHeight:1 }}>{item.emoji}</div>
+        {showHint
+          ? <p style={{ color:"#666", fontSize:14, margin:"8px 0 0", fontStyle:"italic" }}>💡 {item.hint}</p>
+          : <button onClick={()=>{ setShowHint(true); speak(item.hint, 0.85); }}
+              style={{ background:"none", border:`2px dashed ${group.color}`, borderRadius:20, padding:"4px 14px", cursor:"pointer", color:group.color, fontFamily:"inherit", fontSize:13, marginTop:8 }}>
+              💡 Show hint
+            </button>
+        }
+        <button onClick={()=>speak(item.hint, 0.85)}
+          style={{ position:"absolute", top:10, right:10, background:"none", border:`2px solid ${group.color}`, borderRadius:50, padding:"4px 10px", cursor:"pointer", fontSize:13, color:group.color, fontFamily:"inherit" }}>
+          🔊
+        </button>
+      </div>
+
+      {/* Slots */}
+      <div style={{ display:"flex", gap:10, justifyContent:"center", marginBottom:16 }}>
+        {placed.map((tile, i) => {
+          let borderColor = "#ddd", bg = "#f9f9f9", shadow = "#ddd";
+          if (status === "correct") { borderColor = C.green; bg = "#d4edda"; shadow = C.green; }
+          else if (status === "wrong" && tile) { borderColor = C.primary; bg = "#f8d7da"; shadow = C.primary; }
+          else if (tile) { borderColor = tile.color; bg = `${tile.color}22`; shadow = tile.color; }
+          return (
+            <div key={i} onClick={() => tapFromSlot(i)}
+              style={{ width:56, height:64, borderRadius:14, border:`3px solid ${borderColor}`, background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, fontWeight:900, cursor:tile?"pointer":"default", boxShadow:`0 4px 0 ${shadow}`, color:tile?tile.color:"#ddd", transition:"all 0.2s", transform:status==="correct"&&tile?"scale(1.1)":"scale(1)" }}>
+              {tile ? tile.char : ""}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Status message */}
+      {status === "correct" && (
+        <div style={{ animation:"popIn 0.4s", marginBottom:10 }}>
+          <p style={{ color:C.green, fontWeight:900, fontSize:20, margin:0 }}>
+            🎉 {word}! {!solved[`${group.category}-${word}`] || true ? "+4 stars! ⭐⭐⭐⭐" : "Already solved!"}
+          </p>
+          <p style={{ color:"#888", fontSize:14, margin:"4px 0 0" }}>{item.hint}</p>
+        </div>
+      )}
+      {status === "wrong" && (
+        <p style={{ color:C.primary, fontWeight:700, fontSize:16, animation:"popIn 0.3s", margin:"0 0 8px" }}>
+          ❌ Not quite — tap a letter to move it back!
+        </p>
+      )}
+
+      {/* Letter bank */}
+      <div style={{ minHeight:72, background:"#f0f0f0", borderRadius:20, padding:"12px 10px", marginBottom:14, display:"flex", gap:10, justifyContent:"center", alignItems:"center", flexWrap:"wrap", border:"2px dashed #ddd" }}>
+        {bank.length === 0 && status !== "correct" && (
+          <span style={{ color:"#bbb", fontSize:14 }}>All letters placed!</span>
+        )}
+        {bank.map(tile => (
+          <div key={tile.id} onClick={() => tapFromBank(tile)}
+            style={{ width:54, height:62, borderRadius:14, background:tile.color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, fontWeight:900, cursor:"pointer", color:"#fff", boxShadow:`0 5px 0 ${tile.color}88`, transition:"transform 0.1s", userSelect:"none" }}
+            onMouseDown={e=>e.currentTarget.style.transform="translateY(3px) scale(0.95)"}
+            onMouseUp={e=>e.currentTarget.style.transform=""}>
+            {tile.char}
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+        <Btn onClick={reset} color="#aaa" style={{ padding:"10px 18px", fontSize:14 }}>🔄 Reset</Btn>
+        {status === "correct"
+          ? <Btn onClick={nextWord} color={group.color}>Next Word ▶</Btn>
+          : <>
+              <Btn onClick={prevWord} color="#bbb" style={{ padding:"10px 18px", fontSize:14 }}>◀</Btn>
+              <Btn onClick={nextWord} color={group.color} style={{ padding:"10px 18px", fontSize:14 }}>▶</Btn>
+            </>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ── TRACING ───────────────────────────────────────────────────────────────────
+function TracingScreen({ onEarn }) {
+  const [letterIdx, setLetterIdx] = useState(0);
+  const [drawing, setDrawing] = useState(false);
+  const [drawn, setDrawn] = useState(false);
+  const [praised, setPraised] = useState(false);
+  const canvasRef = useRef(null);
+  const lastPos = useRef(null);
+  const item = PHONICS[letterIdx];
+
+  const getPos = (e, c) => {
+    const r = c.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  };
+
+  const startDraw = (e) => { e.preventDefault(); setDrawing(true); const c = canvasRef.current; lastPos.current = getPos(e, c); };
+  const endDraw = () => { setDrawing(false); lastPos.current = null; if (drawn && !praised) { onEarn(2); setPraised(true); } };
+  const doDraw = (e) => {
+    if (!drawing) return; e.preventDefault();
+    const c = canvasRef.current; const ctx = c.getContext("2d");
+    const pos = getPos(e, c);
+    ctx.strokeStyle = item.color; ctx.lineWidth = 10; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(lastPos.current.x, lastPos.current.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+    lastPos.current = pos; setDrawn(true);
+  };
+
+  const clearCanvas = () => {
+    const c = canvasRef.current; c.getContext("2d").clearRect(0, 0, c.width, c.height);
+    setDrawn(false); setPraised(false);
+  };
+  const next = () => { clearCanvas(); setLetterIdx(i=>(i+1)%PHONICS.length); };
+
+  return (
+    <div style={{ padding:20, textAlign:"center" }}>
+      <h2 style={{ color:C.purple, margin:"0 0 4px", fontSize:22 }}>✍️ Trace the Letter!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 16px" }}>Use your finger to trace the letter below</p>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:16, marginBottom:16 }}>
+        <div style={{ fontSize:56, background:item.color, borderRadius:16, padding:"10px 20px", color:"#fff", fontWeight:900, lineHeight:1 }}>{item.letter}</div>
+        <div>
+          <div style={{ fontSize:40 }}>{item.emoji}</div>
+          <div style={{ fontWeight:700, color:item.color }}>{item.word}</div>
+          <button onClick={()=>speak(`${item.letter}. ${item.word}`, 0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"4px 12px", cursor:"pointer", color:item.color, fontSize:12, fontFamily:"inherit", marginTop:4 }}>🔊 Hear it</button>
+        </div>
+      </div>
+      <div style={{ position:"relative", display:"inline-block", border:`3px dashed ${item.color}`, borderRadius:16, overflow:"hidden", background:"#fff", boxShadow:"0 4px 12px rgba(0,0,0,0.1)" }}>
+        <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", fontSize:160, color:`${item.color}22`, fontWeight:900, userSelect:"none", pointerEvents:"none", lineHeight:1 }}>{item.letter}</div>
+        <canvas ref={canvasRef} width={280} height={200}
+          onMouseDown={startDraw} onMouseMove={doDraw} onMouseUp={endDraw} onMouseLeave={endDraw}
+          onTouchStart={startDraw} onTouchMove={doDraw} onTouchEnd={endDraw}
+          style={{ display:"block", cursor:"crosshair", touchAction:"none" }}/>
+      </div>
+      {praised && <p style={{ color:C.green, fontWeight:900, fontSize:18, margin:"12px 0 0", animation:"popIn 0.4s" }}>✨ Great tracing! +2 stars!</p>}
+      <div style={{ display:"flex", gap:12, justifyContent:"center", marginTop:16 }}>
+        <Btn onClick={clearCanvas} color="#aaa" style={{ padding:"10px 20px", fontSize:14 }}>🗑️ Clear</Btn>
+        <Btn onClick={next} color={item.color} style={{ padding:"10px 20px", fontSize:14 }}>Next Letter ▶</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function HomeScreen({ stars, onNav }) {
+  const lvl = getLevel(stars); const nxt = nextLevel(stars);
+  const [bounce, setBounce] = useState(false);
+  useEffect(()=>{ const t=setInterval(()=>setBounce(b=>!b),1000); return()=>clearInterval(t); },[]);
+  return (
+    <div style={{ textAlign:"center", padding:"20px 16px" }}>
+      <div style={{ fontSize:72, marginBottom:4, transform:bounce?"scale(1.1)":"scale(1)", transition:"transform 0.5s" }}>🌟</div>
+      <h1 style={{ fontSize:30, color:C.primary, margin:"0 0 4px", fontWeight:900 }}>Reading Stars!</h1>
+      <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:`${lvl.color}22`, border:`2px solid ${lvl.color}`, borderRadius:20, padding:"6px 16px", marginBottom:12 }}>
+        <span style={{ fontSize:20 }}>{lvl.emoji}</span>
+        <span style={{ fontWeight:900, color:lvl.color }}>{lvl.name}</span>
+      </div>
+      <div style={{ background:"linear-gradient(135deg,#FFE66D,#FF9F1C)", borderRadius:16, padding:"10px 20px", display:"inline-flex", alignItems:"center", gap:8, marginBottom:nxt?12:20, boxShadow:"0 4px 12px rgba(255,159,28,0.3)" }}>
+        <span style={{ fontSize:24 }}>⭐</span>
+        <span style={{ fontWeight:900, fontSize:22, color:"#7D4E00" }}>{stars} Stars!</span>
+      </div>
+      {nxt && (
+        <div style={{ maxWidth:320, margin:"0 auto 20px" }}>
+          <p style={{ fontSize:12, color:"#aaa", margin:"0 0 4px" }}>{nxt.minStars-stars} more stars to reach {nxt.emoji} {nxt.name}!</p>
+          <ProgressBar value={stars-lvl.minStars} max={nxt.minStars-lvl.minStars} color={lvl.color} height={10}/>
+        </div>
+      )}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, maxWidth:360, margin:"0 auto" }}>
+        {[
+          { id:"phonics", emoji:"🔤", label:"Phonics", color:C.primary, sub:"Learn letter sounds" },
+          { id:"soundquiz", emoji:"🔊", label:"Sound Quiz", color:"#F72585", sub:"Hear & identify!" },
+          { id:"sightwords", emoji:"👁️", label:"Sight Words", color:C.secondary, sub:"Common words" },
+          { id:"stories", emoji:"📚", label:"Stories", color:C.purple, sub:"Read fun stories" },
+          { id:"game", emoji:"🎮", label:"Word Game", color:C.orange, sub:"Play & earn stars" },
+          { id:"wordbuilder", emoji:"🔢", label:"Word Builder", color:"#FF9F1C", sub:"Build words!" },
+          { id:"tracing", emoji:"✍️", label:"Tracing", color:C.green, sub:"Trace letters" },
+          { id:"dashboard", emoji:"📊", label:"My Progress", color:"#5E81F4", sub:"See how I'm doing" },
+        ].map(({ id, emoji, label, color, sub }) => (
+          <button key={id} onClick={()=>onNav(id)}
+            style={{ background:"#fff", border:`3px solid ${color}`, borderRadius:20, padding:"18px 12px", cursor:"pointer", boxShadow:`0 6px 0 ${color}88`, fontFamily:"inherit" }}
+            onMouseDown={e=>e.currentTarget.style.cssText+="transform:translateY(4px);box-shadow:0 2px 0 "+color+"88"}
+            onMouseUp={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=`0 6px 0 ${color}88`;}}>
+            <div style={{ fontSize:38, marginBottom:4 }}>{emoji}</div>
+            <div style={{ fontWeight:900, fontSize:15, color }}>{label}</div>
+            <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>{sub}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── PHONICS ───────────────────────────────────────────────────────────────────
+function PhonicsScreen({ onEarn, progress, onProgress }) {
+  const [idx, setIdx] = useState(0);
+  const [shown, setShown] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const item = PHONICS[idx];
+  const learned = progress.phonics || {};
+  const show = () => {
+    if (!shown) {
+      setShown(true);
+      speak(`${item.letter}. ${item.letter} says... ${item.word[0]}... like in ${item.word}`, 0.8);
+      if (!learned[item.letter]) { onEarn(1); onProgress("phonics", item.letter); }
+    }
+  };
+  const go = (dir) => { setAnimating(true); setTimeout(()=>{ setIdx(i=>(i+dir+PHONICS.length)%PHONICS.length); setShown(false); setAnimating(false); },250); };
+  return (
+    <div style={{ padding:20, textAlign:"center" }}>
+      <h2 style={{ color:C.primary, margin:"0 0 4px", fontSize:22 }}>🔤 Phonics Fun!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 8px" }}>{Object.keys(learned).length}/26 letters learned!</p>
+      <ProgressBar value={Object.keys(learned).length} max={26} color={C.primary}/>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:4, justifyContent:"center", margin:"12px 0" }}>
+        {PHONICS.map(p=>(
+          <div key={p.letter} onClick={()=>{ setAnimating(true); setTimeout(()=>{setIdx(PHONICS.indexOf(p)); setShown(false); setAnimating(false);},200); }}
+            style={{ width:28, height:28, borderRadius:8, background:learned[p.letter]?p.color:"#eee", color:learned[p.letter]?"#fff":"#aaa", fontWeight:900, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", border:PHONICS[idx].letter===p.letter?`2px solid ${C.dark}`:"2px solid transparent" }}>
+            {p.letter}
+          </div>
+        ))}
+      </div>
+      <div style={{ opacity:animating?0:1, transform:animating?"scale(0.85)":"scale(1)", transition:"all 0.25s" }}>
+        <div style={{ background:item.color, borderRadius:28, padding:"28px 20px", maxWidth:280, margin:"0 auto", boxShadow:`0 8px 0 ${item.color}88` }}>
+          <div style={{ fontSize:80 }}>{item.emoji}</div>
+          <div style={{ fontSize:96, fontWeight:900, color:"#fff", lineHeight:1, marginTop:4 }}>{item.letter}</div>
+          {shown && <div style={{ animation:"popIn 0.4s" }}><div style={{ fontSize:24, color:"#fff", fontWeight:700, marginTop:6 }}>{item.word}</div><div style={{ background:"rgba(255,255,255,0.3)", borderRadius:12, padding:"5px 14px", display:"inline-block", marginTop:6, color:"#fff", fontSize:16, fontStyle:"italic" }}>"{item.word[0].toLowerCase()}..." sound</div></div>}
+        </div>
+        {!shown ? <Btn onClick={show} color={C.accent} style={{ marginTop:16, color:"#7D4E00" }}>🔊 Hear the Sound!</Btn>
+          : <div style={{ marginTop:14 }}><p style={{ color:C.green, fontWeight:700, fontSize:17 }}>{learned[item.letter]?"Already learned! ✅":"⭐ New letter! +1 star!"}</p><button onClick={()=>speak(`${item.letter}. ${item.word[0]}. ${item.word}`,0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"6px 16px", cursor:"pointer", color:item.color, fontFamily:"inherit", fontSize:14 }}>🔊 Hear again</button></div>}
+      </div>
+      <div style={{ display:"flex", justifyContent:"center", gap:16, marginTop:16 }}>
+        <Btn onClick={()=>go(-1)} color="#aaa" style={{ padding:"10px 22px", fontSize:18 }}>◀</Btn>
+        <Btn onClick={()=>go(1)} color={C.secondary} style={{ padding:"10px 22px", fontSize:18 }}>▶</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── SIGHT WORDS ───────────────────────────────────────────────────────────────
+function SightWordsScreen({ onEarn, progress, onProgress }) {
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const item = SIGHT_WORDS[idx];
+  const learned = progress.sightWords || {};
+  const flip = () => {
+    if (!flipped) { setFlipped(true); speak(item.sentence, 0.8); if (!learned[item.word]) { onEarn(2); onProgress("sightWords", item.word); } }
+  };
+  const go = (dir) => { setIdx(i=>(i+dir+SIGHT_WORDS.length)%SIGHT_WORDS.length); setFlipped(false); };
+  return (
+    <div style={{ padding:20, textAlign:"center" }}>
+      <h2 style={{ color:C.secondary, margin:"0 0 4px", fontSize:22 }}>👁️ Sight Words</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 8px" }}>{Object.keys(learned).length}/{SIGHT_WORDS.length} words learned!</p>
+      <ProgressBar value={Object.keys(learned).length} max={SIGHT_WORDS.length} color={C.secondary}/>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:6, justifyContent:"center", margin:"12px 0" }}>
+        {SIGHT_WORDS.map(w=>(
+          <div key={w.word} onClick={()=>{ setIdx(SIGHT_WORDS.indexOf(w)); setFlipped(false); }}
+            style={{ padding:"4px 10px", borderRadius:20, background:learned[w.word]?C.secondary:"#eee", color:learned[w.word]?"#fff":"#aaa", fontWeight:700, fontSize:13, cursor:"pointer", border:SIGHT_WORDS[idx].word===w.word?"2px solid #333":"2px solid transparent" }}>
+            {w.word}
+          </div>
+        ))}
+      </div>
+      <div onClick={flip} style={{ maxWidth:300, margin:"0 auto", height:190, cursor:"pointer" }}>
+        {!flipped
+          ? <div style={{ background:"linear-gradient(135deg,#4ECDC4,#0abfbc)", borderRadius:24, height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 0 #0abfbc88" }}>
+              <div style={{ fontSize:62, fontWeight:900, color:"#fff", letterSpacing:4 }}>{item.word}</div>
+              <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13, marginTop:8 }}>Tap to see the sentence!</div>
+              <button onClick={e=>{e.stopPropagation();speak(item.word,0.7);}} style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:20, padding:"5px 14px", marginTop:8, cursor:"pointer", color:"#fff", fontFamily:"inherit", fontSize:13 }}>🔊 Say it</button>
+            </div>
+          : <div style={{ background:"linear-gradient(135deg,#FFE66D,#FF9F1C)", borderRadius:24, height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 0 #cc7a0088", animation:"popIn 0.4s", padding:16 }}>
+              <div style={{ fontSize:40 }}>{item.emoji}</div>
+              <div style={{ fontSize:20, fontWeight:700, color:"#7D4E00", marginTop:6, lineHeight:1.4 }}>{item.sentence}</div>
+              <button onClick={e=>{e.stopPropagation();speak(item.sentence,0.8);}} style={{ background:"rgba(255,255,255,0.4)", border:"none", borderRadius:20, padding:"5px 14px", marginTop:8, cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:700 }}>🔊 Read it</button>
+              {!learned[item.word]?<div style={{ color:C.green, fontWeight:900, marginTop:6 }}>⭐⭐ +2 stars!</div>:<div style={{ color:"#aaa", marginTop:6 }}>Already learned ✅</div>}
+            </div>}
+      </div>
+      <div style={{ display:"flex", gap:12, justifyContent:"center", marginTop:20 }}>
+        <Btn onClick={()=>go(-1)} color="#aaa" style={{ padding:"10px 22px", fontSize:18 }}>◀</Btn>
+        <Btn onClick={()=>go(1)} color={C.secondary}>Next Word ▶</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── STORIES ───────────────────────────────────────────────────────────────────
+function StoriesScreen({ onEarn, stars, progress, onProgress }) {
+  const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(0);
+  const userLevel = getLevel(stars).level;
+  const completed = progress.stories || {};
+  if (selected===null) return (
+    <div style={{ padding:20, textAlign:"center" }}>
+      <h2 style={{ color:C.purple, margin:"0 0 16px", fontSize:22 }}>📚 Choose a Story</h2>
+      <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:320, margin:"0 auto" }}>
+        {STORIES.map((s,i)=>{ const locked=s.level>userLevel; return (
+          <button key={i} onClick={()=>{ if(!locked){setSelected(i);setPage(0);}}} disabled={locked}
+            style={{ background:locked?"#f5f5f5":"#fff", border:`3px solid ${locked?"#ddd":s.color}`, borderRadius:20, padding:"16px 20px", cursor:locked?"default":"pointer", display:"flex", alignItems:"center", gap:14, boxShadow:locked?"none":`0 6px 0 ${s.color}88`, fontFamily:"inherit", opacity:locked?0.6:1 }}>
+            <div style={{ fontSize:40 }}>{locked?"🔒":s.emoji}</div>
+            <div style={{ textAlign:"left" }}>
+              <div style={{ fontWeight:900, fontSize:17, color:locked?"#aaa":s.color }}>{s.title}</div>
+              <div style={{ color:"#aaa", fontSize:11 }}>{locked?`Unlock at Level ${s.level}`:`${s.pages.length} pages ${completed[s.title]?"✅":""}`}</div>
+            </div>
+          </button>
+        );})}
+      </div>
+    </div>
+  );
+  const story=STORIES[selected]; const pg=story.pages[page]; const isLast=page===story.pages.length-1; const alreadyDone=completed[story.title];
+  const nextPage=()=>{ speak(pg.text,0.8); if(isLast){if(!alreadyDone){onEarn(5);onProgress("stories",story.title);}}else setPage(p=>p+1); };
+  useEffect(()=>{ speak(pg.text,0.8); },[page]);
+  return (
+    <div style={{ padding:20, textAlign:"center" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+        <button onClick={()=>setSelected(null)} style={{ background:"#eee", border:"none", borderRadius:50, padding:"8px 16px", cursor:"pointer", fontFamily:"inherit" }}>◀</button>
+        <h2 style={{ color:story.color, margin:0, fontSize:17, flex:1 }}>{story.emoji} {story.title}</h2>
+      </div>
+      <ProgressBar value={page+1} max={story.pages.length} color={story.color}/>
+      <div style={{ marginTop:20, background:"#fff", borderRadius:24, padding:"28px 18px", boxShadow:"0 6px 20px rgba(0,0,0,0.1)", minHeight:190, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", border:`3px solid ${story.color}` }}>
+        <div style={{ fontSize:52, marginBottom:14, animation:"popIn 0.5s" }}>{pg.emojis}</div>
+        <div style={{ fontSize:24, fontWeight:700, color:"#333", lineHeight:1.5, animation:"popIn 0.5s" }}>{pg.text}</div>
+        <div style={{ color:"#aaa", marginTop:12, fontSize:12 }}>Page {page+1} of {story.pages.length}</div>
+      </div>
+      <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:16 }}>
+        <button onClick={()=>speak(pg.text,0.8)} style={{ background:"none", border:`2px solid ${story.color}`, borderRadius:50, padding:"10px 18px", cursor:"pointer", color:story.color, fontFamily:"inherit", fontSize:14 }}>🔊 Read aloud</button>
+        {page>0 && <Btn onClick={()=>setPage(p=>p-1)} color="#aaa" style={{ padding:"10px 18px", fontSize:14 }}>◀ Back</Btn>}
+        <Btn onClick={nextPage} color={isLast?C.green:story.color}>{isLast?"🎉 Finish!":"Next ▶"}</Btn>
+      </div>
+      {isLast&&alreadyDone&&<p style={{ color:"#aaa", fontSize:13, marginTop:12 }}>Already completed ✅ — read again for fun!</p>}
+      {isLast&&!alreadyDone&&<p style={{ color:C.green, fontWeight:900, fontSize:18, marginTop:12, animation:"popIn 0.5s" }}>🎉 ⭐⭐⭐⭐⭐ +5 stars!</p>}
+    </div>
+  );
+}
+
+// ── GAME ──────────────────────────────────────────────────────────────────────
+function GameScreen({ onEarn }) {
+  const [qIdx, setQIdx] = useState(()=>Math.floor(Math.random()*QUIZ_QUESTIONS.length));
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [particles, setParticles] = useState([]);
+  const q = QUIZ_QUESTIONS[qIdx];
+  const choose=(i)=>{
+    if(selected!==null)return; setSelected(i); setTotal(t=>t+1);
+    if(i===q.ans){ setScore(s=>s+1); onEarn(3); speak("Correct! Well done!",0.9,1.3); setParticles(Array.from({length:10},(_,k)=>({id:Date.now()+k,x:20+Math.random()*280,y:60+Math.random()*80}))); setTimeout(()=>setParticles([]),1600); }
+    else speak("Try again next time!",0.9);
+  };
+  const next=()=>{ setSelected(null); setQIdx(Math.floor(Math.random()*QUIZ_QUESTIONS.length)); };
+  return (
+    <div style={{ padding:20, textAlign:"center", position:"relative" }}>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <h2 style={{ color:C.orange, margin:"0 0 4px", fontSize:22 }}>🎮 Word Game!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 16px" }}>Score: {score}/{total} — Correct = ⭐⭐⭐!</p>
+      <div style={{ background:"linear-gradient(135deg,#FF9F1C,#FF6B6B)", borderRadius:24, padding:"22px 18px", marginBottom:20, boxShadow:"0 8px 0 #cc440088" }}>
+        <div style={{ fontSize:46 }}>{q.emoji}</div>
+        <div style={{ fontSize:22, fontWeight:900, color:"#fff", marginTop:10, lineHeight:1.4 }}>{q.q}</div>
+        <button onClick={()=>speak(q.q,0.85)} style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:20, padding:"5px 14px", marginTop:8, cursor:"pointer", color:"#fff", fontFamily:"inherit", fontSize:13 }}>🔊 Hear question</button>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        {q.opts.map((opt,i)=>{ let bg="#fff",border="#ddd",shadow="#bbb"; if(selected!==null){ if(i===q.ans){bg="#d4edda";border=C.green;shadow=C.green;}else if(i===selected&&i!==q.ans){bg="#f8d7da";border=C.primary;shadow=C.primary;}} return (
+          <button key={i} onClick={()=>choose(i)} style={{ background:bg, border:`3px solid ${border}`, borderRadius:16, padding:"14px 8px", fontSize:18, fontWeight:700, cursor:selected?"default":"pointer", boxShadow:`0 5px 0 ${shadow}`, fontFamily:"inherit", transition:"all 0.2s" }}>{opt}</button>
+        );})}
+      </div>
+      {selected!==null&&<div style={{ marginTop:18 }}><p style={{ fontSize:20, fontWeight:900, color:selected===q.ans?C.green:C.primary, animation:"popIn 0.4s" }}>{selected===q.ans?"🎉 Correct! +3 stars!":"❌ The answer was: "+q.opts[q.ans]}</p><Btn onClick={next} color={C.orange}>Next Question ▶</Btn></div>}
+    </div>
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function DashboardScreen({ stars, progress }) {
+  const lvl=getLevel(stars); const nxt=nextLevel(stars);
+  const phonicsLearned=Object.keys(progress.phonics||{}).length;
+  const wordsLearned=Object.keys(progress.sightWords||{}).length;
+  const storiesRead=Object.keys(progress.stories||{}).length;
+  const wordsBuilt=Object.keys(progress.wordBuilder||{}).length;
+  const totalWords=WORD_GROUPS.reduce((s,g)=>s+g.words.length,0);
+  const stats=[
+    { label:"Letters Learned", value:phonicsLearned, max:26, color:C.primary, emoji:"🔤" },
+    { label:"Sight Words", value:wordsLearned, max:SIGHT_WORDS.length, color:C.secondary, emoji:"👁️" },
+    { label:"Stories Read", value:storiesRead, max:STORIES.length, color:C.purple, emoji:"📚" },
+    { label:"Words Built", value:wordsBuilt, max:totalWords, color:C.orange, emoji:"🔢" },
+  ];
+  return (
+    <div style={{ padding:20 }}>
+      <h2 style={{ color:"#5E81F4", margin:"0 0 16px", fontSize:22, textAlign:"center" }}>📊 My Progress</h2>
+      <div style={{ background:"linear-gradient(135deg,#5E81F4,#A78BFA)", borderRadius:24, padding:20, marginBottom:20, textAlign:"center", color:"#fff", boxShadow:"0 8px 0 #3d5bd488" }}>
+        <div style={{ fontSize:52 }}>{lvl.emoji}</div>
+        <div style={{ fontWeight:900, fontSize:24 }}>{lvl.name}</div>
+        <div style={{ fontSize:40, fontWeight:900, marginTop:4 }}>⭐ {stars}</div>
+        {nxt&&<><div style={{ fontSize:13, opacity:0.8, marginTop:4 }}>{nxt.minStars-stars} more stars to reach {nxt.name}!</div><div style={{ marginTop:10 }}><ProgressBar value={stars-lvl.minStars} max={nxt.minStars-lvl.minStars} color="rgba(255,255,255,0.6)" height={10}/></div></>}
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        {stats.map(({ label, value, max, color, emoji })=>(
+          <div key={label} style={{ background:"#fff", borderRadius:20, padding:"16px 20px", boxShadow:"0 4px 12px rgba(0,0,0,0.08)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <span style={{ fontWeight:700, color:"#444", fontSize:15 }}>{emoji} {label}</span>
+              <span style={{ fontWeight:900, color, fontSize:18 }}>{value}/{max}</span>
+            </div>
+            <ProgressBar value={value} max={max} color={color} height={12}/>
+            <p style={{ margin:"6px 0 0", fontSize:12, color:"#aaa" }}>{Math.round((value/max)*100)}% complete</p>
+          </div>
+        ))}
+      </div>
+      <div style={{ background:"#fff", borderRadius:20, padding:"16px 20px", marginTop:14, boxShadow:"0 4px 12px rgba(0,0,0,0.08)" }}>
+        <div style={{ fontWeight:700, color:"#444", fontSize:15, marginBottom:12 }}>🏅 Levels</div>
+        {LEVELS.map(l=>(
+          <div key={l.level} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, opacity:stars>=l.minStars?1:0.4 }}>
+            <div style={{ fontSize:24 }}>{l.emoji}</div>
+            <div style={{ flex:1 }}><div style={{ fontWeight:700, color:l.color, fontSize:14 }}>{l.name}</div><div style={{ fontSize:11, color:"#aaa" }}>{l.minStars} stars</div></div>
+            {stars>=l.minStars?<div style={{ color:C.green, fontWeight:900, fontSize:16 }}>✅</div>:<div style={{ color:"#ccc", fontSize:13 }}>🔒</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SOUND QUIZ ────────────────────────────────────────────────────────────────
+function SoundQuizScreen({ onEarn }) {
+  const [current, setCurrent] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [particles, setParticles] = useState([]);
+
+  const newQuestion = useCallback(() => {
+    const item = PHONICS[Math.floor(Math.random() * PHONICS.length)];
+    const others = [...PHONICS].filter(p => p.letter !== item.letter);
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    const opts = [item, ...others.slice(0, 3)];
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    setCurrent(item);
+    setOptions(opts);
+    setSelected(null);
+  }, []);
+
+  useEffect(() => { newQuestion(); }, []);
+
+  const playSound = useCallback((item) => {
+    speak(PHONETICS[item.letter], 0.65, 1.15);
+  }, []);
+
+  useEffect(() => {
+    if (current) setTimeout(() => playSound(current), 400);
+  }, [current]);
+
+  const choose = (opt) => {
+    if (selected) return;
+    setSelected(opt.letter);
+    setTotal(t => t + 1);
+    if (opt.letter === current.letter) {
+      setScore(s => s + 1);
+      setStreak(s => s + 1);
+      onEarn(2);
+      speak(`Yes! ${current.letter} says ${PHONETICS[current.letter]}! Like in ${current.word}!`, 0.85, 1.2);
+      setParticles(Array.from({ length: 10 }, (_, i) => ({ id: Date.now() + i, x: 20 + Math.random() * 280, y: 60 + Math.random() * 80 })));
+      setTimeout(() => setParticles([]), 1600);
+    } else {
+      setStreak(0);
+      speak(`The answer is ${current.letter}. ${current.letter} says ${PHONETICS[current.letter]}, like in ${current.word}.`, 0.85);
+    }
+  };
+
+  if (!current) return null;
+
+  return (
+    <div style={{ padding:20, textAlign:"center", position:"relative" }}>
+      {particles.map(p => <FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+
+      <h2 style={{ color:"#F72585", margin:"0 0 2px", fontSize:22 }}>🔊 Sound Quiz!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 16px" }}>
+        Score: {score}/{total}{streak >= 3 ? ` 🔥 ${streak} in a row!` : ""}
+      </p>
+
+      {/* Sound prompt card */}
+      <div style={{ background:"linear-gradient(135deg,#F72585,#7209B7)", borderRadius:24, padding:"28px 20px", marginBottom:22, boxShadow:"0 8px 0 #7209b766" }}>
+        <div style={{ fontSize:15, fontWeight:700, color:"rgba(255,255,255,0.75)", marginBottom:14, letterSpacing:0.5 }}>
+          Which letter makes this sound?
+        </div>
+        <button
+          onClick={() => playSound(current)}
+          style={{ background:"rgba(255,255,255,0.18)", border:"3px solid rgba(255,255,255,0.55)", borderRadius:60, padding:"18px 40px", cursor:"pointer", fontSize:52, lineHeight:1, boxShadow:"0 6px 0 rgba(0,0,0,0.18)", transition:"transform 0.1s", fontFamily:"inherit" }}
+          onMouseDown={e => e.currentTarget.style.transform="translateY(4px)"}
+          onMouseUp={e => e.currentTarget.style.transform=""}>
+          🔊
+        </button>
+        <div style={{ color:"rgba(255,255,255,0.55)", fontSize:12, marginTop:10 }}>Tap to hear the sound again</div>
+      </div>
+
+      {/* Letter choices */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, maxWidth:320, margin:"0 auto 18px" }}>
+        {options.map(opt => {
+          const isCorrect = opt.letter === current.letter;
+          const isSelected = selected === opt.letter;
+          let bg = "#fff", border = opt.color, shadow = opt.color + "88";
+          if (selected) {
+            if (isCorrect)       { bg = "#d4edda"; border = C.green;   shadow = C.green + "88"; }
+            else if (isSelected) { bg = "#f8d7da"; border = C.primary; shadow = C.primary + "88"; }
+            else                 { bg = "#f9f9f9"; border = "#ddd";    shadow = "#ddd"; }
+          }
+          return (
+            <button key={opt.letter} onClick={() => choose(opt)}
+              style={{ background:bg, border:`3px solid ${border}`, borderRadius:20, padding:"18px 10px", cursor:selected?"default":"pointer", boxShadow:`0 6px 0 ${shadow}`, fontFamily:"inherit", transition:"all 0.2s" }}
+              onMouseDown={e => { if (!selected) e.currentTarget.style.transform="translateY(4px)"; }}
+              onMouseUp={e => e.currentTarget.style.transform=""}>
+              <div style={{ fontSize:44, fontWeight:900, color: selected ? (isCorrect ? C.green : isSelected ? C.primary : "#ccc") : opt.color }}>{opt.letter}</div>
+              <div style={{ fontSize:22, marginTop:2 }}>{opt.emoji}</div>
+              {selected && isCorrect && <div style={{ fontSize:11, color:C.green, fontWeight:700, marginTop:4 }}>{opt.word}</div>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Result + next */}
+      {selected && (
+        <div style={{ animation:"popIn 0.4s" }}>
+          <p style={{ fontSize:19, fontWeight:900, color:selected===current.letter?C.green:C.primary, margin:"0 0 14px" }}>
+            {selected===current.letter
+              ? `🎉 "${current.letter}" says "${PHONETICS[current.letter]}"! +2 ⭐`
+              : `❌ It was "${current.letter}" — sounds like "${PHONETICS[current.letter]}"`}
+          </p>
+          <Btn onClick={newQuestion} color="#F72585">Next Sound ▶</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [screen, setScreen] = useState("home");
+  const [stars, setStars] = useState(0);
+  const [particles, setParticles] = useState([]);
+  const [progress, setProgress] = useState({ phonics:{}, sightWords:{}, stories:{}, wordBuilder:{} });
+
+  const earn = useCallback((n) => {
+    setStars(s => {
+      const ns = s + n;
+      if (getLevel(ns).level > getLevel(s).level) setTimeout(()=>speak(`Level up! You are now a ${getLevel(ns).name}!`,0.85,1.2),300);
+      return ns;
+    });
+    setParticles(p=>[...p,...Array.from({length:n*2},(_,i)=>({id:Date.now()+i,x:20+Math.random()*280,y:40+Math.random()*60}))]);
+    setTimeout(()=>setParticles([]),1600);
+  }, []);
+
+  const trackProgress = useCallback((type, key) => {
+    setProgress(p=>({ ...p, [type]:{ ...p[type], [key]:true } }));
+  }, []);
+
+  const NAV = [
+    { id:"home",       emoji:"🏠", label:"Home"    },
+    { id:"phonics",    emoji:"🔤", label:"Phonics" },
+    { id:"soundquiz",  emoji:"🔊", label:"Sounds"  },
+    { id:"wordbuilder",emoji:"🔢", label:"Build"   },
+    { id:"sightwords", emoji:"👁️", label:"Words"   },
+    { id:"stories",    emoji:"📚", label:"Stories" },
+    { id:"game",       emoji:"🎮", label:"Game"    },
+    { id:"tracing",    emoji:"✍️", label:"Trace"   },
+    { id:"dashboard",  emoji:"📊", label:"Stats"   },
+  ];
+
+  return (
+    <div style={{ fontFamily:"'Comic Sans MS','Chalkboard SE',cursive", background:C.bg, minHeight:"100vh", display:"flex", flexDirection:"column", maxWidth:420, margin:"0 auto", position:"relative", overflow:"hidden" }}>
+      <style>{`
+        @keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-80px)} }
+        @keyframes popIn { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+      `}</style>
+      {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
+      <div style={{ background:"linear-gradient(90deg,#FF6B6B,#FF9F1C)", padding:"12px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span style={{ fontSize:18, fontWeight:900, color:"#fff" }}>⭐ Reading Stars</span>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ background:"rgba(255,255,255,0.25)", borderRadius:20, padding:"4px 12px", color:"#fff", fontWeight:900, fontSize:15 }}>⭐ {stars}</div>
+          <div style={{ background:"rgba(255,255,255,0.2)", borderRadius:20, padding:"4px 10px", color:"#fff", fontSize:13, fontWeight:700 }}>{getLevel(stars).emoji}</div>
+        </div>
+      </div>
+      <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}>
+        {screen==="home" && <HomeScreen stars={stars} onNav={setScreen}/>}
+        {screen==="phonics" && <PhonicsScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
+        {screen==="soundquiz" && <SoundQuizScreen onEarn={earn}/>}
+        {screen==="sightwords" && <SightWordsScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
+        {screen==="stories" && <StoriesScreen onEarn={earn} stars={stars} progress={progress} onProgress={trackProgress}/>}
+        {screen==="game" && <GameScreen onEarn={earn}/>}
+        {screen==="wordbuilder" && <WordBuilderScreen onEarn={earn} progress={progress} onProgress={trackProgress}/>}
+        {screen==="tracing" && <TracingScreen onEarn={earn}/>}
+        {screen==="dashboard" && <DashboardScreen stars={stars} progress={progress}/>}
+      </div>
+      <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:420, background:"#fff", borderTop:"3px solid #f0f0f0", display:"flex", justifyContent:"space-around", padding:"6px 0", zIndex:50 }}>
+        {NAV.map(({ id, emoji, label })=>(
+          <button key={id} onClick={()=>setScreen(id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:1, padding:"3px 4px", opacity:screen===id?1:0.45, transform:screen===id?"scale(1.15)":"scale(1)", transition:"all 0.2s", fontFamily:"inherit" }}>
+            <span style={{ fontSize:18 }}>{emoji}</span>
+            <span style={{ fontSize:9, fontWeight:700, color:screen===id?C.primary:"#aaa" }}>{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
