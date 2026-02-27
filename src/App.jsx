@@ -147,11 +147,11 @@ const getLevel = (s) => [...LEVELS].reverse().find(l=>s>=l.minStars)||LEVELS[0];
 const nextLevel = (s) => LEVELS.find(l=>l.minStars>s);
 
 const PHONETICS = {
-  A:"aah", B:"buh", C:"kuh", D:"duh", E:"eh",
-  F:"fff", G:"guh", H:"huh", I:"ih",  J:"juh",
-  K:"kuh", L:"lll", M:"mmm", N:"nnn", O:"oh",
-  P:"puh", Q:"kwuh",R:"rrr", S:"sss", T:"tuh",
-  U:"uh",  V:"vvv", W:"wuh", X:"ks",  Y:"yuh", Z:"zzz",
+  A:"ah",  B:"buh", C:"kuh", D:"duh", E:"eh",
+  F:"fuh", G:"guh", H:"huh", I:"ih",  J:"juh",
+  K:"kuh", L:"luh", M:"muh", N:"nuh", O:"oh",
+  P:"puh", Q:"kwuh",R:"ruh", S:"suh", T:"tuh",
+  U:"uh",  V:"vuh", W:"wuh", X:"ks",  Y:"yuh", Z:"zuh",
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -493,7 +493,7 @@ function PhonicsScreen({ onEarn, progress, onProgress }) {
   const show = () => {
     if (!shown) {
       setShown(true);
-      speak(`${item.letter}. ${item.letter} says... ${item.word[0]}... like in ${item.word}`, 0.8);
+      speak(`${item.letter} says ${PHONETICS[item.letter]}... ${PHONETICS[item.letter]}... like in ${item.word}`, 0.8);
       if (!learned[item.letter]) { onEarn(1); onProgress("phonics", item.letter); }
     }
   };
@@ -518,7 +518,7 @@ function PhonicsScreen({ onEarn, progress, onProgress }) {
           {shown && <div style={{ animation:"popIn 0.4s" }}><div style={{ fontSize:24, color:"#fff", fontWeight:700, marginTop:6 }}>{item.word}</div><div style={{ background:"rgba(255,255,255,0.3)", borderRadius:12, padding:"5px 14px", display:"inline-block", marginTop:6, color:"#fff", fontSize:16, fontStyle:"italic" }}>"{item.word[0].toLowerCase()}..." sound</div></div>}
         </div>
         {!shown ? <Btn onClick={show} color={C.accent} style={{ marginTop:16, color:"#7D4E00" }}>🔊 Hear the Sound!</Btn>
-          : <div style={{ marginTop:14 }}><p style={{ color:C.green, fontWeight:700, fontSize:17 }}>{learned[item.letter]?"Already learned! ✅":"⭐ New letter! +1 star!"}</p><button onClick={()=>speak(`${item.letter}. ${item.word[0]}. ${item.word}`,0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"6px 16px", cursor:"pointer", color:item.color, fontFamily:"inherit", fontSize:14 }}>🔊 Hear again</button></div>}
+          : <div style={{ marginTop:14 }}><p style={{ color:C.green, fontWeight:700, fontSize:17 }}>{learned[item.letter]?"Already learned! ✅":"⭐ New letter! +1 star!"}</p><button onClick={()=>speak(`${item.letter} says ${PHONETICS[item.letter]}... like in ${item.word}`,0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"6px 16px", cursor:"pointer", color:item.color, fontFamily:"inherit", fontSize:14 }}>🔊 Hear again</button></div>}
       </div>
       <div style={{ display:"flex", justifyContent:"center", gap:16, marginTop:16 }}>
         <Btn onClick={()=>go(-1)} color="#aaa" style={{ padding:"10px 22px", fontSize:18 }}>◀</Btn>
@@ -735,7 +735,7 @@ function SoundQuizScreen({ onEarn }) {
   useEffect(() => { newQuestion(); }, []);
 
   const playSound = useCallback((item) => {
-    speak(PHONETICS[item.letter], 0.65, 1.15);
+    speak(`${PHONETICS[item.letter]}... ${PHONETICS[item.letter]}`, 0.65, 1.15);
   }, []);
 
   useEffect(() => {
