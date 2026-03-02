@@ -106,6 +106,22 @@ const SIGHT_WORDS = [
   { word:"our",    sentence:"Our dog loves to play fetch!",      emoji:"🐶" },
   { word:"out",    sentence:"The cat ran out the door.",         emoji:"🚪" },
   { word:"that",   sentence:"That is a big fluffy cloud!",       emoji:"☁️" },
+  // Dolch First Grade
+  { word:"from",   sentence:"A letter came from grandma.",        emoji:"💌" },
+  { word:"him",    sentence:"Give him the ball to play.",         emoji:"⚽" },
+  { word:"his",    sentence:"That is his red toy car.",           emoji:"🚗" },
+  { word:"how",    sentence:"How do you spell your name?",        emoji:"🔤" },
+  { word:"just",   sentence:"I just saw a big rainbow!",          emoji:"🌈" },
+  { word:"know",   sentence:"Do you know this fun song?",         emoji:"🎵" },
+  { word:"old",    sentence:"The old tree has many birds.",       emoji:"🌳" },
+  { word:"once",   sentence:"Once a cat sat on a big mat.",       emoji:"🐱" },
+  { word:"some",   sentence:"Can I have some apple juice?",       emoji:"🍎" },
+  { word:"them",   sentence:"Give them a big warm hug!",          emoji:"🤗" },
+  { word:"when",   sentence:"When will the sun come out?",        emoji:"☀️" },
+  { word:"were",   sentence:"We were playing in the park.",       emoji:"🛝" },
+  { word:"your",   sentence:"Is that your red hat?",              emoji:"🎩" },
+  { word:"over",   sentence:"The ball flew over the fence.",      emoji:"🏈" },
+  { word:"take",   sentence:"Take a big deep breath now!",        emoji:"🌬️" },
 ];
 
 const STORIES = [
@@ -199,6 +215,26 @@ const WORD_GROUPS = [
     { word:"RIB", emoji:"🦴", hint:"A bone in your chest" },
     { word:"HIP", emoji:"🕺", hint:"Side part of your body" },
     { word:"TOE", emoji:"🦶", hint:"A small part of your foot" },
+  ]},
+  { category:"Farm", emoji:"🚜", color:"#6BCB77", words:[
+    { word:"HEN", emoji:"🐔", hint:"A farm bird that clucks" },
+    { word:"COW", emoji:"🐮", hint:"Gives us milk" },
+    { word:"PIG", emoji:"🐷", hint:"A pink farm animal" },
+    { word:"RAM", emoji:"🐏", hint:"A male sheep" },
+    { word:"EGG", emoji:"🥚", hint:"Hens lay these" },
+    { word:"HAY", emoji:"🌾", hint:"Dried grass for animals" },
+    { word:"MUD", emoji:"🟫", hint:"Found in pig pens" },
+    { word:"DEN", emoji:"🏠", hint:"Where some animals sleep" },
+  ]},
+  { category:"Ocean", emoji:"🌊", color:"#0097A7", words:[
+    { word:"FIN", emoji:"🐟", hint:"A fish uses this to swim" },
+    { word:"NET", emoji:"🥅", hint:"Used to catch fish" },
+    { word:"COD", emoji:"🐡", hint:"A type of ocean fish" },
+    { word:"ROD", emoji:"🎣", hint:"Used for fishing" },
+    { word:"EEL", emoji:"🐍", hint:"A long slippery fish" },
+    { word:"BAY", emoji:"🌊", hint:"A curved inlet of the sea" },
+    { word:"RAY", emoji:"🐟", hint:"A flat ocean fish" },
+    { word:"CUB", emoji:"🦭", hint:"A baby seal" },
   ]},
 ];
 
@@ -698,108 +734,158 @@ function WordBuilderScreen({ onEarn, progress, onProgress }) {
 // ── TRACING ───────────────────────────────────────────────────────────────────
 function TracingScreen({ onEarn }) {
   const [letterIdx, setLetterIdx] = useState(0);
-  const [drawing, setDrawing] = useState(false);
-  const [dotsHit, setDotsHit] = useState([]);
-  const [praised, setPraised] = useState(false);
-  const [earnedStars, setEarnedStars] = useState(0);
-  const canvasRef = useRef(null);
-  const lastPos = useRef(null);
-  const dotsHitRef = useRef([]);
+  const [nextDot, setNextDot] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [showDemo, setShowDemo] = useState(true);
+  const [demoIdx, setDemoIdx] = useState(0);
+  const [shake, setShake] = useState(false);
+  const demoRef = useRef(null);
   const item = PHONICS[letterIdx];
   const paths = LETTER_PATHS[item.letter] || [];
 
-  const getPos = (e, c) => {
-    const r = c.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
-    return { x: src.clientX - r.left, y: src.clientY - r.top };
-  };
-
-  const clearCanvas = () => {
-    const c = canvasRef.current;
-    c.getContext("2d").clearRect(0, 0, c.width, c.height);
-    dotsHitRef.current = [];
-    setDotsHit([]); setPraised(false); setEarnedStars(0);
-  };
-
-  const next = () => { clearCanvas(); setLetterIdx(i => (i+1) % PHONICS.length); };
-
-  const startDraw = (e) => {
-    e.preventDefault();
-    setDrawing(true);
-    lastPos.current = getPos(e, canvasRef.current);
-  };
-
-  const doDraw = (e) => {
-    if (!drawing) return; e.preventDefault();
-    const c = canvasRef.current; const ctx = c.getContext("2d");
-    const pos = getPos(e, c);
-    ctx.strokeStyle = item.color; ctx.lineWidth = 12; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(lastPos.current.x, lastPos.current.y);
-    ctx.lineTo(pos.x, pos.y); ctx.stroke();
-    lastPos.current = pos;
-    const nextDotIdx = dotsHitRef.current.length;
-    if (nextDotIdx < paths.length) {
-      const target = paths[nextDotIdx];
-      const dist = Math.sqrt((pos.x - target.x)**2 + (pos.y - target.y)**2);
-      if (dist < 32) {
-        dotsHitRef.current = [...dotsHitRef.current, nextDotIdx];
-        setDotsHit([...dotsHitRef.current]);
+  const startDemo = (pLen) => {
+    setShowDemo(true); setDemoIdx(0);
+    let d = 0;
+    demoRef.current = setInterval(() => {
+      d++;
+      setDemoIdx(d);
+      if (d >= pLen - 1) {
+        clearInterval(demoRef.current);
+        setTimeout(() => { setShowDemo(false); setDemoIdx(-1); }, 500);
       }
+    }, 550);
+  };
+
+  useEffect(() => {
+    clearInterval(demoRef.current);
+    setNextDot(0); setCompleted(false); setShake(false);
+    speak(`${item.letter}. ${item.word}`, 0.8);
+    const pLen = (LETTER_PATHS[item.letter] || []).length;
+    if (pLen > 0) startDemo(pLen);
+    return () => clearInterval(demoRef.current);
+  }, [letterIdx]);
+
+  const tapDot = (i) => {
+    if (showDemo || completed) return;
+    if (i === nextDot) {
+      const isLast = i === paths.length - 1;
+      setNextDot(i + 1);
+      if (isLast) {
+        setCompleted(true); onEarn(3);
+        speak(`${item.letter}! Amazing! Three stars!`, 0.85, 1.2);
+      } else {
+        speak(`${i + 2}`, 1.1, 1.5);
+      }
+    } else if (i > nextDot) {
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
+      speak(`tap dot ${nextDot + 1} first!`, 0.9);
     }
   };
 
-  const endDraw = () => {
-    setDrawing(false); lastPos.current = null;
-    if (!praised) {
-      const allHit = dotsHitRef.current.length >= paths.length && paths.length > 0;
-      const someHit = dotsHitRef.current.length > 0;
-      if (allHit) { onEarn(3); setPraised(true); setEarnedStars(3); }
-      else if (someHit) { onEarn(1); setPraised(true); setEarnedStars(1); }
-    }
-  };
+  const goToLetter = (i) => { clearInterval(demoRef.current); setLetterIdx(i); };
 
   return (
-    <div style={{ padding:20, textAlign:"center" }}>
-      <h2 style={{ color:C.purple, margin:"0 0 4px", fontSize:22 }}>✍️ Trace the Letter!</h2>
-      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 16px" }}>Follow the numbered dots in order!</p>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:16, marginBottom:16 }}>
-        <div style={{ fontSize:56, background:item.color, borderRadius:16, padding:"10px 20px", color:"#fff", fontWeight:900, lineHeight:1 }}>{item.letter}</div>
+    <div style={{ padding:"16px 20px", textAlign:"center" }}>
+      <h2 style={{ color:C.purple, margin:"0 0 2px", fontSize:22 }}>✍️ Trace the Letter!</h2>
+      <p style={{ color:"#aaa", fontSize:12, margin:"0 0 10px" }}>
+        {showDemo ? "👀 Watch the stroke order..." : completed ? "🎉 All dots connected!" : `Tap dot ${nextDot+1} of ${paths.length}`}
+      </p>
+
+      {/* Letter info */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginBottom:10 }}>
+        <div style={{ fontSize:50, background:item.color, borderRadius:14, padding:"8px 18px", color:"#fff", fontWeight:900, lineHeight:1 }}>{item.letter}</div>
         <div>
-          <div style={{ fontSize:40 }}>{item.emoji}</div>
-          <div style={{ fontWeight:700, color:item.color }}>{item.word}</div>
-          <button onClick={() => speak(`${item.letter}. ${item.word}`, 0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"4px 12px", cursor:"pointer", color:item.color, fontSize:12, fontFamily:"inherit", marginTop:4 }}>🔊 Hear it</button>
+          <div style={{ fontSize:36 }}>{item.emoji}</div>
+          <div style={{ fontWeight:700, color:item.color, fontSize:14 }}>{item.word}</div>
+          <button onClick={() => speak(`${item.letter}. ${item.word}`, 0.8)} style={{ background:"none", border:`2px solid ${item.color}`, borderRadius:20, padding:"3px 10px", cursor:"pointer", color:item.color, fontSize:11, fontFamily:"inherit", marginTop:3 }}>🔊 Hear it</button>
         </div>
       </div>
-      <div style={{ position:"relative", display:"inline-block", border:`3px dashed ${item.color}`, borderRadius:16, overflow:"hidden", background:"#fff", boxShadow:"0 4px 12px rgba(0,0,0,0.1)" }}>
-        <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", fontSize:160, color:`${item.color}22`, fontWeight:900, userSelect:"none", pointerEvents:"none", lineHeight:1 }}>{item.letter}</div>
-        <canvas ref={canvasRef} width={280} height={200}
-          onMouseDown={startDraw} onMouseMove={doDraw} onMouseUp={endDraw} onMouseLeave={endDraw}
-          onTouchStart={startDraw} onTouchMove={doDraw} onTouchEnd={endDraw}
-          style={{ display:"block", cursor:"crosshair", touchAction:"none" }}/>
-        <svg width={280} height={200} style={{ position:"absolute", top:0, left:0, pointerEvents:"none" }}>
+
+      {/* A–Z letter picker */}
+      <div style={{ display:"flex", flexWrap:"wrap", gap:3, justifyContent:"center", marginBottom:10 }}>
+        {PHONICS.map((p, i) => (
+          <div key={p.letter} onClick={() => goToLetter(i)}
+            style={{ width:24, height:24, borderRadius:6, background:i===letterIdx?p.color:"#eee", color:i===letterIdx?"#fff":"#aaa", fontWeight:900, fontSize:11, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
+            {p.letter}
+          </div>
+        ))}
+      </div>
+
+      {/* SVG tracing board — tap dots in order */}
+      <div style={{ display:"inline-block", animation:shake?"shake 0.4s":"none" }}>
+        <svg width={280} height={210}
+          style={{ border:`3px solid ${completed?C.green:showDemo?`${item.color}66`:item.color}`, borderRadius:16, background:"#fff", boxShadow:"0 4px 14px rgba(0,0,0,0.12)", display:"block" }}>
+
+          {/* Ghost letter */}
+          <text x={140} y={108} textAnchor="middle" dominantBaseline="middle"
+            fontSize={150} fontWeight="900" fill={`${item.color}12`} fontFamily="inherit">
+            {item.letter}
+          </text>
+
+          {/* Faint guide lines */}
           {paths.map((p, i) => i < paths.length-1 && (
-            <line key={`l${i}`} x1={p.x} y1={p.y} x2={paths[i+1].x} y2={paths[i+1].y}
-              stroke={`${item.color}55`} strokeWidth={2} strokeDasharray="6,4"/>
+            <line key={`g${i}`} x1={p.x} y1={p.y} x2={paths[i+1].x} y2={paths[i+1].y}
+              stroke={`${item.color}25`} strokeWidth={3} strokeLinecap="round" strokeDasharray="5,4"/>
           ))}
+
+          {/* Completed stroke lines */}
+          {paths.map((p, i) => i < paths.length-1 && i < nextDot && (
+            <line key={`s${i}`} x1={p.x} y1={p.y} x2={paths[i+1].x} y2={paths[i+1].y}
+              stroke={completed?C.green:item.color} strokeWidth={9} strokeLinecap="round" opacity={0.85}/>
+          ))}
+
+          {/* Demo animated line segment */}
+          {showDemo && demoIdx > 0 && demoIdx < paths.length && (
+            <line x1={paths[demoIdx-1].x} y1={paths[demoIdx-1].y}
+              x2={paths[demoIdx].x} y2={paths[demoIdx].y}
+              stroke={item.color} strokeWidth={6} strokeLinecap="round" opacity={0.55}/>
+          )}
+
+          {/* Numbered dots */}
           {paths.map((p, i) => {
-            const hit = i < dotsHit.length;
+            const isHit      = i < nextDot;
+            const isNext     = i === nextDot && !showDemo && !completed;
+            const isDemoLit  = showDemo && i <= demoIdx;
             return (
-              <g key={`d${i}`}>
-                <circle cx={p.x} cy={p.y} r={14} fill={hit ? item.color : "white"} stroke={item.color} strokeWidth={2.5}/>
-                <text x={p.x} y={p.y+5} textAnchor="middle" fontSize={11} fontWeight="bold" fill={hit ? "#fff" : item.color}>{i+1}</text>
+              <g key={`d${i}`} onClick={() => tapDot(i)} style={{ cursor:isNext?"pointer":"default" }}>
+                {isNext && (
+                  <circle cx={p.x} cy={p.y} r={23} fill="none" stroke={item.color}
+                    strokeWidth={2.5} opacity={0.35} style={{ animation:"pulseRing 1.2s ease-out infinite" }}/>
+                )}
+                <circle cx={p.x} cy={p.y} r={isNext?19:14}
+                  fill={completed?C.green : isHit||isDemoLit ? item.color : "#fff"}
+                  stroke={completed?C.green:item.color} strokeWidth={2.5}/>
+                <text x={p.x} y={p.y+5} textAnchor="middle" fontSize={isNext?13:10}
+                  fontWeight="bold" fill={isHit||isDemoLit?"#fff":item.color}
+                  style={{ pointerEvents:"none", userSelect:"none" }}>{i+1}</text>
               </g>
             );
           })}
+
+          {/* Demo moving ball */}
+          {showDemo && demoIdx >= 0 && demoIdx < paths.length && (
+            <circle cx={paths[demoIdx].x} cy={paths[demoIdx].y} r={12}
+              fill={item.color} stroke="#fff" strokeWidth={2.5} opacity={0.95}/>
+          )}
         </svg>
       </div>
-      {praised && (
-        <p style={{ color:earnedStars===3?C.green:C.orange, fontWeight:900, fontSize:18, margin:"12px 0 0", animation:"popIn 0.4s" }}>
-          {earnedStars===3 ? "🌟🌟🌟 Perfect! +3 stars!" : "⭐ Good try! +1 star!"}
+
+      {completed && (
+        <p style={{ color:C.green, fontWeight:900, fontSize:20, margin:"10px 0 0", animation:"popIn 0.4s" }}>
+          🌟🌟🌟 Perfect stroke order! +3 stars!
         </p>
       )}
-      <div style={{ display:"flex", gap:12, justifyContent:"center", marginTop:16 }}>
-        <Btn onClick={clearCanvas} color="#aaa" style={{ padding:"10px 20px", fontSize:14 }}>🗑️ Clear</Btn>
-        <Btn onClick={next} color={item.color} style={{ padding:"10px 20px", fontSize:14 }}>Next Letter ▶</Btn>
+
+      <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:14 }}>
+        {showDemo
+          ? <Btn onClick={() => { clearInterval(demoRef.current); setShowDemo(false); setDemoIdx(-1); }} color={item.color}>▶ I'm Ready!</Btn>
+          : !completed && <Btn onClick={() => { setNextDot(0); startDemo(paths.length); }} color="#aaa" style={{ padding:"10px 18px", fontSize:14 }}>👀 Watch Again</Btn>
+        }
+        <Btn onClick={() => goToLetter((letterIdx+1) % PHONICS.length)}
+          color={completed?C.green:"#bbb"} style={{ padding:"10px 18px", fontSize:14 }}>
+          {completed?"Next Letter ▶":"Skip ▶"}
+        </Btn>
       </div>
     </div>
   );
@@ -1971,6 +2057,7 @@ export default function App() {
         @keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-80px)} }
         @keyframes popIn { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
         @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
+        @keyframes pulseRing { 0%{r:20;opacity:0.5} 100%{r:28;opacity:0} }
         .nav-bar::-webkit-scrollbar { display:none; }
       `}</style>
       {particles.map(p=><FloatParticle key={p.id} x={p.x} y={p.y}/>)}
